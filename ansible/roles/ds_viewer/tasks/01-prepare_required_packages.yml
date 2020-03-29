@@ -116,8 +116,8 @@
       become_user: "{{ server.user }}"
       when: not rbenv_dir.stat.exists
 
-    - name: "install bundler gem"
-      command: "{{ server.apps_dir}}/rbenvInit.sh gem install bundler on {{ inventory_hostname }}"
+    - name: "install bundler gem on {{ inventory_hostname }}"
+      command: "{{ server.apps_dir}}/rbenvInit.sh gem install bundler"
       become_user: "{{ server.user }}"
       when: not rbenv_dir.stat.exists
 
