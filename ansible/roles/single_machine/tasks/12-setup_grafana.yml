@@ -42,7 +42,7 @@
 
     - name: Wait for Grafana http port to become open on the box, don't start checking for 5 seconds
       wait_for:
-        port: "{{ grafana.http_port }}"
+        port: "{{ grafana.http_internal_port }}"
         delay: 5
         timeout: 300
         state: started

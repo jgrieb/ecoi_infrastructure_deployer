@@ -35,7 +35,7 @@ protocol = https
 http_addr = 0.0.0.0
 
 # The http port  to use
-http_port = {{ grafana.http_port }}
+http_port = {{ grafana.http_internal_port }}
 
 # The public facing domain name used to access grafana from a browser
 ;domain = localhost
@@ -454,7 +454,7 @@ user = {{ grafana.smtp.user }}
 password = {{ grafana.smtp.password }}
 ;cert_file =
 ;key_file =
-;skip_verify = false
+skip_verify = true
 from_address = {{ grafana.smtp.user }}
 from_name = Grafana
 # EHLO identity in SMTP dialog (defaults to instance_name)

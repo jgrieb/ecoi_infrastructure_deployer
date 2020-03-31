@@ -9,12 +9,10 @@
     - import_tasks: 03-setup_elasticsearch.yml
       tags: [setup_elasticsearch]
 
-    - import_tasks: 04-configure_startup_programs.yml
-      tags: [configure_startup_programs]
-
   rescue:
     - debug:
         msg: "ERROR in Setting up server with Elasticsearch on {{ inventory_hostname }}"
   always:
     - debug:
         msg: "Setting up server with Elasticsearch FINISHED on {{ inventory_hostname }}"
+  tags: ["elasticsearch"]

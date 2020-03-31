@@ -18,6 +18,7 @@
             external_port: "{{ blackbox_exporter.http_port }}"
             internal_port: "{{ blackbox_exporter.http_internal_port }}"
             internal_protocol: "http"
+            domain: "_"
 
   rescue:
     - debug:
@@ -25,3 +26,4 @@
   always:
     - debug:
         msg: "Setting up server with Blackbox exporter FINISHED on {{ inventory_hostname }}"
+  tags: ["blackbox_exporter"]

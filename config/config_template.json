@@ -41,15 +41,15 @@
     "grafana": {
       "admin_password":"PASSWORD",
       "smtp": {
-        "host": "smtp.gmail.com:465",
+        "host": "smtp.gmail.com:587",
         "user": "EMAIL_USER",
-        "password": "EMAIL_PASSWORD"
-      },
-      "notification_email_address": "YOUR_DESIRED_EMAIL_ADDRESS_TO_RECEIVE_ALERTS"
+        "password": "APP_EMAIL_PASSWORD"
+      }
     },
     "prometheus": {
       "admin_password":"PASSWORD"
-    }
+    },
+    "notification_email_address": "YOUR_DESIRED_EMAIL_ADDRESS_TO_RECEIVE_ALERTS"
   },
   "keys": {
     "public_key": "ssh-rsa XXXX",

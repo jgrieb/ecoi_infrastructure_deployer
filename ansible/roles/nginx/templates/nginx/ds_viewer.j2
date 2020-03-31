@@ -1,3 +1,7 @@
+upstream dsviewer {
+  server unix:/tmp/puma.socket fail_timeout=1;
+}
+
 server {
     server_name {{ item.value.domain }};
     {% if item.value.ssl_enabled %}
@@ -21,7 +25,7 @@ server {
         location / {
            proxy_set_header   X-Forwarded-For $remote_addr;
            proxy_set_header   Host $http_host;
-           proxy_pass {{ item.value.internal_protocol }}://127.0.0.1:{{ item.value.internal_port }}/;
+           proxy_pass {{ item.value.internal_protocol }}://dsviewer;
         }
     {% endif %}
 }

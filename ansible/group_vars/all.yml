@@ -7,6 +7,7 @@ server:
   user: "{{ server_user }}"
   group: "{{ server_user }}"
   conf: "{{ config }} "
+  domain: "nsidr.org"
 
 cordra:
   dir: "{{ server.apps_dir + '/cordra' }}"
@@ -24,20 +25,22 @@ cordra:
   doec_library_url: https://cardiff-cordra-distributions.s3.eu-west-2.amazonaws.com/doec-1.0.0-jar-with-dependencies.jar
 
   cordra_nsidr_server:
-    handle_prefix: "vagrant.994"
+    domain: "{{ '' + server.domain }}"
+    handle_prefix: "20.5000.1025"
     host_ip: "{{ hostvars['cordra_nsidr_server']['ansible_host'] }}"
     handleServer_host: "{{ hostvars['cordra_nsidr_server']['ansible_host'] }}"
-    #base_uri: "https://{{ hostvars['cordra_nsidr_server']['ansible_host'] + '/' }}"
-    base_uri: ""
+    base_uri: "http://{{  '' + server.domain }} + cordra.http_internal_port + '/' }}"
+    #base_uri: ""
     index_name: "cordra_nsidr"
     db_name: "cordra-nsidr"
     initial_users: "{{ server.conf.cordra.users }}"
 
   cordra_prov_server:
-    handle_prefix: "vagrant_prov.994"
+    domain: "{{ 'prov.' + server.domain }}"
+    handle_prefix: "prov.994"
     host_ip: "{{ hostvars['cordra_prov_server']['ansible_host'] }}"
     handleServer_host: "{{ hostvars['cordra_prov_server']['ansible_host'] }}"
-    #base_uri: "https://{{ hostvars['cordra_prov_server']['ansible_host'] + '/' }}"
+    #base_uri: "http://{{  'prov.' + server.domain }} + cordra.http_internal_port + '/' }}"
     base_uri: ""
     index_name: "cordra_prov"
     db_name: "cordra-prov"
@@ -114,13 +117,22 @@ grafana:
   dir: "{{ server.apps_dir + '/grafana' }}"
   distribution_url: https://dl.grafana.com/oss/release/grafana-6.6.0.linux-amd64.tar.gz
   host_ip: "{{ hostvars[groups['monitoring_servers'][0]]['ansible_host'] }}"
-  http_port: 3000
+  http_port: 80
+  https_port: 443
+  http_internal_port: 3000
   admin_password: "{{ server.conf.grafana.admin_password }}"
   smtp: "{{ server.conf.grafana.smtp }}"
-  notification_email_address: "{{ server.conf.grafana.notification_email_address }}"
+  notification_email_address: "{{ server.conf.notification_email_address }}"
+  domain: "{{ 'monitoring.' + server.domain }}"
 
 ds_viewer:
   dir: "{{ server.apps_dir + '/dsviewer' }}"
   distribution_url: https://github.com/scman1/dsviewer.git
   host_ip: "{{ hostvars[groups['ds_viewer_servers'][0]]['ansible_host'] }}"
-  http_port: 3000
+  http_port: 80
+  https_port: 443
+  http_internal_port: 3000
+  domain: "{{ 'demo.' + server.domain }}"
+
+nginx:
+  notification_email_address: "{{ server.conf.notification_email_address }}"

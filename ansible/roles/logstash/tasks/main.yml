@@ -9,12 +9,10 @@
     - import_tasks: 03-setup_logstash.yml
       tags: [setup_logstash]
 
-    - import_tasks: 04-configure_startup_programs.yml
-      tags: [configure_startup_programs]
-
   rescue:
     - debug:
         msg: "ERROR in Setting up server with Logstash on {{ inventory_hostname }}"
   always:
     - debug:
         msg: "Setting up server with Logstash FINISHED on {{ inventory_hostname }}"
+  tags: ["logstash"]

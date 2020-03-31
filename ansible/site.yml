@@ -41,19 +41,6 @@
   roles:
     - role: filebeat
     - role: cordra
-    - role: nginx
-      vars:
-        sites:
-          cordra:
-            ssl_enabled: false
-            external_port: "{{ cordra.http_port }}"
-            internal_port: "{{ cordra.http_internal_port }}"
-            internal_protocol: "http"
-          cordra_secure:
-            ssl_enabled: true
-            external_port: "{{ cordra.https_port }}"
-            internal_port: "{{ cordra.https_internal_port }}"
-            internal_protocol: "https"
 
 - hosts: monitoring_servers
   gather_facts: yes

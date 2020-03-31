@@ -26,6 +26,7 @@ opts = GetoptLong.new(
   [ '--deployment-type', GetoptLong::OPTIONAL_ARGUMENT ],
   [ '--no-provision', GetoptLong::OPTIONAL_ARGUMENT ],
   [ '--provision', GetoptLong::OPTIONAL_ARGUMENT ],
+  [ '--provision-with', GetoptLong::OPTIONAL_ARGUMENT ],
   [ '-c', GetoptLong::OPTIONAL_ARGUMENT ]
 )
 opts.each do |opt, arg|
@@ -249,15 +250,16 @@ Vagrant.configure('2') do |config|
           monitoring_server.vm.provider :aws do |aws|
             aws.tags = {Name: machine_name}
             aws.instance_type= 't3.small'
-            aws.security_groups = ['ssh','monitoring_agent','monitoring_server']
+            aws.elastic_ip = '18.130.121.175'
+            aws.security_groups = ['ssh','monitoring_agent','monitoring_server','web_server']
           end
 
           # Specific setup for this virtual machine when using the openstack provider
           monitoring_server.vm.provider :openstack do |os, override|
             os.server_name = machine_name
             os.flavor = 'm1.medium'
-            os.floating_ip_pool = "public"
-            os.security_groups = ['ssh','monitoring_agent','monitoring_server']
+            os.floating_ip = '131.251.172.19'
+            os.security_groups = ['ssh','monitoring_agent','monitoring_server','web_server']
           end
 
           # Provisioner that runs the script that updates the ansible inventory with the IP assigned to this virtual machine
@@ -356,13 +358,14 @@ Vagrant.configure('2') do |config|
             aws.tags = {Name: machine_name}
             aws.instance_type= 't3.small'
             aws.security_groups = ['ssh','monitoring_agent','web_server','rails_server']
+            aws.elastic_ip = '18.130.207.21'
           end
 
           # Specific setup for this virtual machine when using the openstack provider
           ds_viewer_server.vm.provider :openstack do |os, override|
             os.server_name = machine_name
             os.flavor = 'm1.medium'
-            os.floating_ip_pool = "public"
+            os.floating_ip = '131.251.172.20'
             os.security_groups = ['ssh','monitoring_agent','web_server','rails_server']
           end
 
@@ -390,6 +393,7 @@ Vagrant.configure('2') do |config|
           cordra_prov_server.vm.provider :aws do |aws|
             aws.tags = {Name: machine_name}
             aws.instance_type= 't3.small'
+            aws.elastic_ip = '3.11.185.90'
             aws.security_groups = ['ssh','monitoring_agent','web_server','cordra_server']
           end
 
@@ -397,7 +401,7 @@ Vagrant.configure('2') do |config|
           cordra_prov_server.vm.provider :openstack do |os, override|
             os.server_name = machine_name
             os.flavor = 'm1.medium'
-            os.floating_ip_pool = "public"
+            os.floating_ip = '131.251.172.21'
             os.security_groups = ['ssh','monitoring_agent','web_server','cordra_server']
           end
 
@@ -437,6 +441,10 @@ Vagrant.configure('2') do |config|
                 cordra_nsidr_server_ip = %x{vagrant ssh cordra_nsidr_server -c "hostname -I"}
                 inventory_content = inventory_content.gsub(/cordra_nsidr_server ansible_host=(.*)/, "cordra_nsidr_server ansible_host="+cordra_nsidr_server_ip)
 
+                ds_viewer_server_ip = %x{vagrant ssh ds_viewer_server -c "hostname -I"}
+                inventory_content = inventory_content.gsub(/ds_viewer_server ansible_host=(.*)/, "ds_viewer_server ansible_host="+ds_viewer_server_ip)
+
+
                 File.open(path_inventory_file, "w") {|file| file.puts inventory_content }
               end
             end
@@ -454,7 +462,7 @@ Vagrant.configure('2') do |config|
           cordra_nsidr_server.vm.provider :aws do |aws|
             aws.tags = {Name: machine_name}
             aws.instance_type= 't3.small'
-            aws.elastic_ip = '18.130.207.21'
+            aws.elastic_ip = '3.9.186.140'
             aws.security_groups = ['ssh','monitoring_agent','web_server','cordra_server']
           end
 

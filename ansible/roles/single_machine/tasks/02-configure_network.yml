@@ -27,7 +27,7 @@
         - "{{prometheus.http_port}}"
         - "{{node_exporter.http_port}}"
         - "{{blackbox_exporter.http_port}}"
-        - "{{grafana.http_port}}"
+        - "{{grafana.http_internal_port}}"
 
   become: true
   become_user: root

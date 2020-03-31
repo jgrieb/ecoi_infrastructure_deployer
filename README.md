@@ -36,7 +36,7 @@ including the ansible provisioner that will run in the cordra_nsidr_server which
 
 ## 3. Adding new CORDRA instances.
 If we want to add a new CORDRA instance, for example for CDIDR, we need to do the following:
-- Edit ```Vagrantfile``` to add configuration for new VM
+- Edit ```Vagrantfile``` to add configuration for the new VM as well as the code in the trigger cordra_nsidr_server.trigger.after up 
 - Edit ```ansible\inventory.ini``` to add new line for the new server under the section called cordra_servers
 - Edit ```ansible\group_vars\all.yml``` to add information of new Cordra instance (handle_prefix, db_name, index_name, etc )
 - Edit ```ansible\roles\basic\main.yml``` to include in the task "Copying certificates" the certificate of the new server

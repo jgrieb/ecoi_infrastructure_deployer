@@ -11,7 +11,7 @@
         to_ip: any
         port : '{{ item }}'
       with_items:
-        - "{{grafana.http_port}}"
+        - "{{grafana.http_internal_port}}"
 
   become: true
   become_user: root

@@ -6,9 +6,10 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory={{ ds_viewer.dir }}
-ExecStart={{ server.apps_dir}}/rbenvInit.sh rails server -b 0.0.0.0 -p {{ ds_viewer.http_port }} -e production -d
-ExecStartPost={{ server.apps_dir}}/check_port.sh {{ ds_viewer.http_port }} 60 5
+ExecStart={{ server.apps_dir}}/rbenvInit.sh bundle exec puma -C config/puma.rb -e production
+ExecStartPost={{ server.apps_dir}}/check_port.sh {{ ds_viewer.http_internal_port }} 60 5
 User={{ server.user }}
+Environment=PORT={{ ds_viewer.http_internal_port }}
 Restart=always
 
 [Install]

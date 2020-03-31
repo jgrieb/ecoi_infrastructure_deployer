@@ -3,6 +3,7 @@
 - name: restart nginx
   service:
     name: nginx
+    enabled: yes
     state: restarted
   become: true
   become_user: root

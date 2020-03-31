@@ -1,7 +1,7 @@
 {
   "dashboard": {
     "id": null,
-    "title": "ECOI systemd services Test",
+    "title": "ECOI systemd services",
     "uid": null,
     "timezone": "",
     "gnetId": null,
@@ -103,7 +103,7 @@
         "steppedLine": false,
         "targets": [
           {
-            "expr": "node_systemd_unit_state{instance=\"172.31.26.237:9100\",job=\"node\",name=\"cordra.service\",state=\"active\"}",
+            "expr": "node_systemd_unit_state{instance=\"{{ cordra.cordra_nsidr_server.host_ip }}:{{ node_exporter.http_port }}\",job=\"node\",name=\"cordra.service\",state=\"active\"}",
             "refId": "A"
           }
         ],
@@ -237,7 +237,7 @@
         "steppedLine": false,
         "targets": [
           {
-            "expr": "node_systemd_unit_state{instance=\"172.31.29.160:9100\",job=\"node\",name=\"cordra.service\",state=\"active\"}",
+            "expr": "node_systemd_unit_state{instance=\"{{ cordra.cordra_prov_server.host_ip }}:{{ node_exporter.http_port }}\",job=\"node\",name=\"cordra.service\",state=\"active\"}",
             "refId": "A"
           }
         ],
@@ -371,7 +371,7 @@
         "steppedLine": false,
         "targets": [
           {
-            "expr": "node_systemd_unit_state{instance=\"172.31.9.129:9100\",job=\"node\",name=\"elasticsearch.service\",state=\"active\"}",
+            "expr": "node_systemd_unit_state{instance=\"{{ elasticsearch.host_ip }}:{{ node_exporter.http_port }}\",job=\"node\",name=\"elasticsearch.service\",state=\"active\"}",
             "refId": "A"
           }
         ],
@@ -505,7 +505,7 @@
         "steppedLine": false,
         "targets": [
           {
-            "expr": "node_systemd_unit_state{instance=\"172.31.18.237:9100\",job=\"node\",name=\"mongodb.service\",state=\"active\"}",
+            "expr": "node_systemd_unit_state{instance=\"{{ mongodb.host_ip }}:{{ node_exporter.http_port }}\",job=\"node\",name=\"mongodb.service\",state=\"active\"}",
             "refId": "A"
           }
         ],

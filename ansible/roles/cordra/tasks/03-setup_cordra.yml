@@ -30,15 +30,12 @@
         - { src: '{{ "cordra/" + instance_type + "/repoInit.json.j2" }}', dest: '{{ cordra.dir + "/data/repoInit.json" }}' }
       when: cordra_download.changed
 
-    - name: Copy Cordra handle keys on {{ inventory_hostname }}
-      copy:
-        src: "{{ item.src }}"
-        dest: "{{ item.dest }}"
+    - name: Create cordra/data/lib directory if it does not exist
+      file:
+        path: "{{ cordra.dir }}/data/lib"
         owner: "{{ server.user }}"
         group: "{{ server.group }}"
-      with_items:
-        - { src: '{{ "cordra/" + instance_type + "/cordra_privatekey" }}', dest: '{{ cordra.dir + "/data/privatekey" }}' }
-        - { src: '{{ "cordra/" + instance_type + "/cordra_publickey" }}', dest: '{{ cordra.dir + "/data/publickey" }}' }
+        state: directory
       when: cordra_download.changed and instance_type != 'cordra_prov_server'
 
     - name: Install DOEC library on {{ inventory_hostname }}
@@ -58,7 +55,7 @@
         group: "{{ server.group }}"
       with_items:
         - { src: '{{ "cordra/" + instance_type + "/doec_config.properties.j2" }}', dest: '{{ cordra.dir + "/data/doec_config.properties" }}' }
-      when: cordra_download.changed  and instance_type != 'cordra_prov_server'
+      when: cordra_download.changed and instance_type != 'cordra_prov_server'
 
     - name: Import SSL certificate from search_engine_server to the default java cacerts keystore on {{ inventory_hostname }}
       java_cert:
@@ -68,22 +65,55 @@
         keystore_pass: changeit
         state: present
 
-    - name: Start Cordra on {{ inventory_hostname }}
-      shell:
-        cmd: nohup ./startup >> ./cordra.log 2>&1 &
-        chdir: "{{ cordra.dir }}"
-      become_user: "{{ server.user }}"
-      when: cordra_download.changed
-      register: cordra_up
+#    - name: Start Cordra on {{ inventory_hostname }}
+#      shell:
+#        cmd: nohup ./startup >> ./cordra.log 2>&1 &
+#        chdir: "{{ cordra.dir }}"
+#      become_user: "{{ server.user }}"
+#      when: cordra_download.changed
+#      register: cordra_up
+#
+#    - name: Wait for http cordra port to become open on the host, don't start checking for 5 seconds on {{ inventory_hostname }}
+#      wait_for:
+#        port: "{{ cordra.http_internal_port }}"
+#        delay: 5
+#        timeout: 300
+#        state: started
+#        msg: "CORDRA HTTP PORT is not Listening"
+#      when: cordra_download.changed
 
-    - name: Wait for http cordra port to become open on the host, don't start checking for 5 seconds on {{ inventory_hostname }}
-      wait_for:
-        port: "{{ cordra.http_internal_port }}"
-        delay: 5
-        timeout: 300
-        state: started
-        msg: "CORDRA HTTP PORT is not Listening"
+    - name: Config Cordra service on {{ inventory_hostname }}
+      template:
+        src: systemd/cordra.service.j2
+        dest: /etc/systemd/system/cordra.service
       when: cordra_download.changed
+      register: cordra_service
+
+    - name: Force systemd to reload configs on {{ inventory_hostname }}
+      systemd:
+        daemon_reload: yes
+      when: cordra_service.changed
+
+    - name: Enable/Start Cordra service on {{ inventory_hostname }}
+      systemd:
+        name: cordra.service
+        enabled: yes
+        state: started
+      when: cordra_service.changed
+
+    - pause:
+        minutes: 1
+
+    - name: Copy Cordra handle keys on {{ inventory_hostname }}
+      copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        owner: "{{ server.user }}"
+        group: "{{ server.group }}"
+      with_items:
+        - { src: '{{ "cordra/" + instance_type + "/cordra_privatekey" }}', dest: '{{ cordra.dir + "/data/privatekey" }}' }
+        - { src: '{{ "cordra/" + instance_type + "/cordra_publickey" }}', dest: '{{ cordra.dir + "/data/publickey" }}' }
+      when: cordra_download.changed and instance_type != 'cordra_prov_server'
 
     - name: Set up file with doip commands to load initial data on {{ inventory_hostname }}
       template:
@@ -93,28 +123,31 @@
         group: "{{ server.group }}"
       vars:
         digital_objects: "{{ lookup('file', 'cordra/'+instance_type+'/initial_data.json') | from_json }}"
-      when: cordra_up.changed
+      when: cordra_service.changed
 
-    # Restart Cordra as initial start doesn't have the doip service and run 2 the import of inital data as the first import
-    # only insert the first object
+    # Restart Cordra as initial start doesn't have the doip service
+    - name: Restart Cordra service on {{ inventory_hostname }}
+      systemd:
+        name: cordra.service
+        state: restarted
+      when: cordra_service.changed
+
+    - pause:
+        minutes: 1
+
+    # import the inital data (need to do it twice as the first import only insert the first object)
     - name: Run DOIP commands to loading intial data on {{ inventory_hostname }}
       shell:
         cmd: "{{item}}"
         chdir: "{{ cordra.dir }}"
         warn: false
       with_items:
-        - "{{ server.apps_dir}}/check_port.sh {{ cordra.http_internal_port }} 60 5"
-        - "./shutdown"
-        - "sleep 15"
-        - "nohup ./startup >> ./cordra.log 2>&1 &"
-        - "{{ server.apps_dir}}/check_port.sh {{ cordra.http_internal_port }} 60 5"
-        - "sleep 10"
         - "openssl s_client -connect {{ cordra[instance_type].host_ip }}:{{ cordra.doip_port }} < doip_load_initial_data.txt"
         - "openssl s_client -connect {{ cordra[instance_type].host_ip }}:{{ cordra.doip_port }} -ign_eof < doip_load_initial_data.txt &"
-        - "sleep 30"
+        - "sleep 60"
         - "rm doip_load_initial_data.txt"
       become_user: "{{ server.user }}"
-      when: cordra_up.changed
+      when: cordra_service.changed
 
   become: true
   become_user: root

@@ -9,8 +9,22 @@
     - import_tasks: 03-setup_ds_viewer.yml
       tags: [setup_ds_viewer]
 
-    - import_tasks: 04-configure_startup_programs.yml
-      tags: [configure_startup_programs]
+    - include_role:
+        name: nginx
+      vars:
+        sites:
+          ds_viewer:
+            ssl_enabled: false
+            external_port: "{{ ds_viewer.http_port }}"
+            internal_port: "{{ ds_viewer.http_internal_port }}"
+            internal_protocol: "http"
+            domain: "{{ ds_viewer.domain }}"
+          ds_viewer_secure:
+            ssl_enabled: true
+            external_port: "{{ ds_viewer.https_port }}"
+            internal_port: "{{ ds_viewer.http_internal_port }}"
+            internal_protocol: "http"
+            domain: "{{ ds_viewer.domain }}"
 
   rescue:
     - debug:
@@ -18,3 +32,4 @@
   always:
     - debug:
         msg: "Setting up server with DS viewer FINISHED on {{ inventory_hostname }}"
+  tags: ["ds_viewer"]

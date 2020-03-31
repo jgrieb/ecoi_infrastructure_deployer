@@ -6,12 +6,10 @@
     - import_tasks: 02-setup_filebeat.yml
       tags: [setup_filebeat]
 
-    - import_tasks: 03-configure_startup_programs.yml
-      tags: [configure_startup_programs]
-
   rescue:
     - debug:
         msg: "ERROR in Setting up server with Filebeat on {{ inventory_hostname }}"
   always:
     - debug:
         msg: "Setting up server with Filebeat FINISHED on {{ inventory_hostname }}"
+  tags: ["filebeat"]

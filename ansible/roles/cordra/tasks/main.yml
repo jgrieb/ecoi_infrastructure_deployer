@@ -10,8 +10,22 @@
     - import_tasks: 03-setup_cordra.yml
       tags: [setup_cordra]
 
-    - import_tasks: 04-configure_startup_programs.yml
-      tags: [configure_startup_programs]
+    - include_role:
+        name: nginx
+      vars:
+        sites:
+          cordra:
+            ssl_enabled: false
+            external_port: "{{ cordra.http_port }}"
+            internal_port: "{{ cordra.http_internal_port }}"
+            internal_protocol: "http"
+            domain: "{{ cordra[instance_type].domain }}"
+          cordra_secure:
+            ssl_enabled: true
+            external_port: "{{ cordra.https_port }}"
+            internal_port: "{{ cordra.https_internal_port }}"
+            internal_protocol: "https"
+            domain: "{{ cordra[instance_type].domain }}"
 
   rescue:
     - debug:
@@ -19,3 +33,4 @@
   always:
     - debug:
         msg: "Setting up server with Cordra FINISHED on {{ inventory_hostname }}"
+  tags: ["cordra"]

@@ -29,7 +29,31 @@
         dest: "{{ nginx_path }}/sites-enabled/{{ item.key }}"
         state: link
       with_dict: "{{ sites }}"
+      register: sites_enabled
+
+    # - meta: flush_handlers
+
+    - name: Restart nginx
+      service:
+        name: nginx
+        state: restarted
+      when: sites_enabled.changed
+
+    - name: "Install Let's encrypt certificate on {{ inventory_hostname }}"
+      shell:
+        cmd: "certbot --nginx -n -m {{ nginx.notification_email_address }} --agree-tos -d {{ item.value.domain }}"
+        creates: /etc/letsencrypt/live/{{ item.value.domain }}
+      with_dict: "{{ sites }}"
+      when: item.value.ssl_enabled and item.value.domain!= "_"
+      register: certificate_installed
       notify: restart nginx
+
+    - name: Add letsencrypt cronjob for cert renewal
+      cron:
+        name: letsencrypt_renewal
+        special_time: weekly
+        job: /usr/bin/certbot renew --quiet && service nginx reload
+      when: certificate_installed.changed
 
   become: true
   become_user: root

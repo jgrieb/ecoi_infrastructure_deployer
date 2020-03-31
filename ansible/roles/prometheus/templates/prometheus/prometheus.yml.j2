@@ -32,7 +32,7 @@ scrape_configs:
     tls_config:
       insecure_skip_verify: true
     static_configs:
-      - targets: ['{{ ds_viewer.host_ip }}:{{ ds_viewer.http_port }}']
+      - targets: ['{{ ds_viewer.host_ip }}:{{ node_exporter.http_port }}']
       - targets: ['{{ cordra.cordra_nsidr_server.host_ip }}:{{ node_exporter.http_port }}']
       - targets: ['{{ cordra.cordra_prov_server.host_ip }}:{{ node_exporter.http_port }}']
       - targets: ['{{ mongodb.host_ip }}:{{ node_exporter.http_port }}']
