@@ -39,9 +39,8 @@
       when: cordra_download.changed and instance_type != 'cordra_prov_server'
 
     - name: Install DOEC library on {{ inventory_hostname }}
-      unarchive:
-        src: "{{ cordra.doec_library_url }}"
-        remote_src: yes
+      get_url:
+        url: "{{ cordra.doec_library_url }}"
         dest: "{{ cordra.dir }}/data/lib"
         owner: "{{ server.user }}"
         group: "{{ server.group }}"
