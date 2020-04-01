@@ -34,7 +34,23 @@ vagrant will use to connect to that cloud provider:
 and updating the ansible/inventory.ini with their ips. After that run ```vagrant reload --provision``` so all the provisioners will be run
 including the ansible provisioner that will run in the cordra_nsidr_server which is responsible to install all the software in the VMs
 
-## 3. Adding new CORDRA instances.
+5. Check that all the service are up and running correctly. To see the list of the services running in each machine have a look at 
+docs\ECOIS_subcomponents_deployment_diagram.pdf
+
+## 3. Updating Handle records
+Once the cordra instance inside the cordra_nsidr_server is running and its initial configuration and objects have been created 
+through the ansible script, we should update the handle records when the service is set up using a domain (eg: nsidr.org) 
+To do so, log in as "admin" and go to Admin->Handle Records and there click in the button Update All Handles
+
+## 4. Digitise some Digital Specimen from DWC-A
+ We can use the java project openDS_CRUD_operator https://github.com/DiSSCo/openDS_CRUD_operator to digitise specimen describe in dwc-a files
+ obtained from gbif like https://www.dropbox.com/s/36ni250j6iryf0x/0034622-190918142434337_Pygmaepterys_pointieri.zip?dl=0
+ 
+ After running the digitiser, we should not only have digital specimen in the codra_nsidr instance but also provenance records 
+ in the cordra_prov instance. As well as if codra_nsidr was set with a domain name, being able to resolve the digital specimens 
+ with http://hdl.handle.net/ 
+
+## 5. Adding new CORDRA instances.
 If we want to add a new CORDRA instance, for example for CDIDR, we need to do the following:
 - Edit ```Vagrantfile``` to add configuration for the new VM as well as the code in the trigger cordra_nsidr_server.trigger.after up 
 - Edit ```ansible\inventory.ini``` to add new line for the new server under the section called cordra_servers
