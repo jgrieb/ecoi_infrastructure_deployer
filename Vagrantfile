@@ -3,15 +3,30 @@ Vagrant.require_version ">= 2.0.0"
 require 'json'
 require 'getoptlong'
 
+# A change to the i18n package which was upgraded with Vagrant 2.2.7. causes an error running vagrant up
+# As temportal workaround, we define the method except in the class Hash
+class Hash
+  def slice(*keep_keys)
+    h = {}
+    keep_keys.each { |key| h[key] = fetch(key) if has_key?(key) }
+    h
+  end unless Hash.method_defined?(:slice)
+  def except(*less_keys)
+    slice(*keys - less_keys)
+  end unless Hash.method_defined?(:except)
+end
+
 # Function that creates files for the private keys hold in config_data
 def create_keys_files(config_data,external_private_key_path,internal_private_key_path)
     if !File.exist?(external_private_key_path) and !File.exist?(internal_private_key_path)
         File.open(external_private_key_path, "w") do |f|
           config_data['keys']['external_private_key'].each { |element| f.puts(element) }
         end
+        File.chmod(0600,external_private_key_path)
         File.open(internal_private_key_path, "w") do |f|
           config_data['keys']['internal_private_key'].each { |element| f.puts(element) }
         end
+        File.chmod(0600,internal_private_key_path)
     end
 end
 
@@ -417,39 +432,6 @@ Vagrant.configure('2') do |config|
       config.vm.define "cordra_nsidr_server", autostart:true do |cordra_nsidr_server|
           machine_name = 'cordra_nsidr_server'
 
-          if !provider.casecmp?("hyperv") then
-            cordra_nsidr_server.trigger.after [:up] do |trigger|
-              trigger.info = "Updating ansible inventory in host machine with a vagrant triggger after up"
-              trigger.ruby do |env,machine|
-                path_inventory_file = './ansible/inventory.ini'
-                inventory_content = File.read(path_inventory_file)
-
-                inventory_content = inventory_content.gsub(/ansible_ssh_user=(.*)/,"ansible_ssh_user="+ssh_username)
-
-                monitoring_server_ip = %x{vagrant ssh monitoring_server -c "hostname -I"}
-                inventory_content = inventory_content.gsub(/monitoring_server ansible_host=(.*)/, "monitoring_server ansible_host="+monitoring_server_ip)
-
-                database_server_ip = %x{vagrant ssh database_server -c "hostname -I"}
-                inventory_content = inventory_content.gsub(/db_server ansible_host=(.*)/, "db_server ansible_host="+database_server_ip)
-
-                search_engine_server_ip = %x{vagrant ssh search_engine_server -c "hostname -I"}
-                inventory_content = inventory_content.gsub(/search_engine_server ansible_host=(.*)/, "search_engine_server ansible_host="+search_engine_server_ip)
-
-                cordra_prov_server_ip = %x{vagrant ssh cordra_prov_server -c "hostname -I"}
-                inventory_content = inventory_content.gsub(/cordra_prov_server ansible_host=(.*)/, "cordra_prov_server ansible_host="+cordra_prov_server_ip)
-
-                cordra_nsidr_server_ip = %x{vagrant ssh cordra_nsidr_server -c "hostname -I"}
-                inventory_content = inventory_content.gsub(/cordra_nsidr_server ansible_host=(.*)/, "cordra_nsidr_server ansible_host="+cordra_nsidr_server_ip)
-
-                ds_viewer_server_ip = %x{vagrant ssh ds_viewer_server -c "hostname -I"}
-                inventory_content = inventory_content.gsub(/ds_viewer_server ansible_host=(.*)/, "ds_viewer_server ansible_host="+ds_viewer_server_ip)
-
-
-                File.open(path_inventory_file, "w") {|file| file.puts inventory_content }
-              end
-            end
-          end
-
           # Specific setup for this virtual machine when using the hyper-v provider
           cordra_nsidr_server.vm.provider "hyperv" do |h, override|
             h.vmname = machine_name
@@ -503,6 +485,39 @@ Vagrant.configure('2') do |config|
             }
           end
       end
+
+      if !provider.casecmp?("hyperv") then
+        config.trigger.after [:up] do |trigger|
+          trigger.info = "Updating ansible inventory in host machine with a vagrant trigger after up"
+          trigger.ruby do |env,machine|
+            path_inventory_file = './ansible/inventory.ini'
+            inventory_content = File.read(path_inventory_file)
+
+            inventory_content = inventory_content.gsub(/ansible_ssh_user=(.*)/,"ansible_ssh_user="+ssh_username)
+
+            monitoring_server_ip = %x{vagrant ssh monitoring_server -c "hostname -I"}
+            inventory_content = inventory_content.gsub(/monitoring_server ansible_host=(.*)/, "monitoring_server ansible_host="+monitoring_server_ip)
+
+            database_server_ip = %x{vagrant ssh database_server -c "hostname -I"}
+            inventory_content = inventory_content.gsub(/db_server ansible_host=(.*)/, "db_server ansible_host="+database_server_ip)
+
+            search_engine_server_ip = %x{vagrant ssh search_engine_server -c "hostname -I"}
+            inventory_content = inventory_content.gsub(/search_engine_server ansible_host=(.*)/, "search_engine_server ansible_host="+search_engine_server_ip)
+
+            cordra_prov_server_ip = %x{vagrant ssh cordra_prov_server -c "hostname -I"}
+            inventory_content = inventory_content.gsub(/cordra_prov_server ansible_host=(.*)/, "cordra_prov_server ansible_host="+cordra_prov_server_ip)
+
+            cordra_nsidr_server_ip = %x{vagrant ssh cordra_nsidr_server -c "hostname -I"}
+            inventory_content = inventory_content.gsub(/cordra_nsidr_server ansible_host=(.*)/, "cordra_nsidr_server ansible_host="+cordra_nsidr_server_ip)
+
+            ds_viewer_server_ip = %x{vagrant ssh ds_viewer_server -c "hostname -I"}
+            inventory_content = inventory_content.gsub(/ds_viewer_server ansible_host=(.*)/, "ds_viewer_server ansible_host="+ds_viewer_server_ip)
+
+            File.open(path_inventory_file, "w") {|file| file.puts inventory_content }
+          end
+        end
+      end
+
   end
 
 end
