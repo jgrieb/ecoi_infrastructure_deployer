@@ -31,8 +31,10 @@ vagrant will use to connect to that cloud provider:
 3. Open an admin command line console in your machine
  
 4. Go to folder where the vagrant file and run the command ```vagrant up --no-provision``` for creating the machines in the cloud provider 
-and updating the ansible/inventory.ini with their ips. After that run ```vagrant reload --provision``` so all the provisioners will be run
-including the ansible provisioner that will run in the cordra_nsidr_server which is responsible to install all the software in the VMs
+and updating the ansible/inventory.ini with their IPs. After that run ```vagrant reload --provision``` so all the provisioners will be executed
+including the ansible provisioner inside the cordra_nsidr_server that is responsible to install all the software in the VMs
+Note: This Vagrantfile won't work if we try to execut it inside a Linux VM running on Hyper-V on a windows host, because can't change permissions
+of private ssh keys
 
 5. Check that all the service are up and running correctly. To see the list of the services running in each machine have a look at 
 docs\ECOIS_subcomponents_deployment_diagram.pdf

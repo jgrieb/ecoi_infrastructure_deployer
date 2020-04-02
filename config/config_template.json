@@ -1,7 +1,7 @@
 {
   "deployment":{
     "type":"distributed",
-    "default_provider":"openstack",
+    "default_provider":"aws",
     "ansible_limit": ["all"],
     "ansible_tags": ["all"]
   },
