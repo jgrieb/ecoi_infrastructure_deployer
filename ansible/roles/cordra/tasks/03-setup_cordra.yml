@@ -183,7 +183,7 @@
         chdir: "{{ cordra.dir }}"
         warn: false
       with_items:
-        - "openssl s_client -connect {{ cordra[instance_type].host_ip }}:{{ cordra.doip_port }} < doip_load_initial_data.txt"
+        # - "openssl s_client -connect {{ cordra[instance_type].host_ip }}:{{ cordra.doip_port }} < doip_load_initial_data.txt"
         - "openssl s_client -connect {{ cordra[instance_type].host_ip }}:{{ cordra.doip_port }} -ign_eof < doip_load_initial_data.txt &"
         - "sleep 60"
         - "rm doip_load_initial_data.txt"
