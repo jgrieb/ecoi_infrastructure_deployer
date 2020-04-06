@@ -83,3 +83,6 @@ config/*
 keys/**
 !keys/**/
 !keys/**/.gitkeep
+
+# Ignore cordra private key
+**/cordra_privatekey

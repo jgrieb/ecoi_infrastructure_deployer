@@ -19,6 +19,9 @@ This file will contain:
 3. Configuration of the different applications to be install in the VMs, like what version of the applications we use or on 
 what ports they will be listening can be edited inside the ansible variables files (eg: ansible/group_vars/all.yml) 
 
+4. Copy the cordra_privatekey to be used by the Cordra instance to communicate with the handle server (http://hdl.handle.net/) 
+into the directory **ansible/roles/cordra/files/cordra/cordra_nsidr_server/**
+
 ## 2. Provision and execution 
 1. Modify the files  ```config/config.json```, ```Vagrantfile``` and ```ansible/group_vars/all``` to match your deployment
  
