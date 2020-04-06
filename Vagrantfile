@@ -318,6 +318,11 @@ Vagrant.configure('2') do |config|
             s_inventory.args          = [mount_synced_folder+'/ansible/inventory.ini',machine_name,ssh_username]
             s_inventory.privileged    = false
           end
+
+          database_server.trigger.before :destroy do |trigger|
+            trigger.warn = "Backing up database before destroying machine"
+            trigger.run_remote = {inline: "/opt/mongodb_backup/mongodb-s3-backup.sh"}
+          end
       end
 
       # Definition of the virtual machine that will be hosting elasticsearch and logstash
@@ -483,6 +488,11 @@ Vagrant.configure('2') do |config|
               "server_user": ssh_username,
               "config": config_data['software']
             }
+          end
+
+          cordra_nsidr_server.trigger.before :destroy do |trigger|
+            trigger.warn = "Deleting handle ids in handle server before destroying machine"
+            trigger.run_remote = {inline: "/opt/cordra/bin/delete_handle_ids_from_handle_server.sh"}
           end
       end
 

@@ -64,6 +64,69 @@
         keystore_pass: changeit
         state: present
 
+    - name: Copy Cordra handle keys on {{ inventory_hostname }}
+      copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        owner: "{{ server.user }}"
+        group: "{{ server.group }}"
+      with_items:
+        - { src: '{{ "cordra/" + instance_type + "/cordra_privatekey" }}', dest: '{{ cordra.dir + "/data/privatekey" }}' }
+        - { src: '{{ "cordra/" + instance_type + "/cordra_publickey" }}', dest: '{{ cordra.dir + "/data/publickey" }}' }
+      when: cordra_download.changed and instance_type != 'cordra_prov_server'
+
+    - name: Set up file with doip commands to load initial data on {{ inventory_hostname }}
+      template:
+        src: "{{ 'cordra/doip_load_initial_data.txt.j2' }}"
+        dest: "{{ cordra.dir + '/doip_load_initial_data.txt' }}"
+        owner: "{{ server.user }}"
+        group: "{{ server.group }}"
+      vars:
+        digital_objects: "{{ lookup('file', 'cordra/'+instance_type+'/initial_data.json') | from_json }}"
+      when: cordra_service.changed
+
+    - name: Download and unarchive Handle tools on {{ inventory_hostname }}
+      unarchive:
+        src: "{{ handle_tool.distribution_url }}"
+        remote_src: yes
+        dest: "{{ server.apps_dir }}"
+        creates: "{{ handle_tool.dir }}"
+        owner: "{{ server.user }}"
+        group: "{{ server.group }}"
+      when: cordra_download.changed
+
+    - name: Create symbolic link between handle-x.x.x and handle directory on {{ inventory_hostname }}
+      shell:
+        cmd: find . -maxdepth 1 -type d -iname 'handle-*' -exec ln -s {} "{{ handle_tool.dir }}" \;
+        chdir: "{{ server.apps_dir }}"
+        creates: "{{ handle_tool.dir }}"
+      when: cordra_download.changed
+
+    - name: Get all handle ids to be deleted in the handle server before starting Cordra on {{ inventory_hostname }}
+      shell:
+        cmd: ./bin/hdl-list {{ cordra[instance_type].handle_prefix }}/repo 300 {{ cordra.dir }}/data/privatekey {{ cordra[instance_type].handle_prefix }} > {{ cordra.dir }}/hdl-list-to-delete.txt
+        #cmd: |
+        #  grep -oP '"id": "\K{{ cordra['cordra_nsidr_server'].handle_prefix }}/[\w-.!]+' {{ cordra.dir }}/doip_load_initial_data.txt > {{ cordra.dir }}/hdl-list-to-delete.txt
+        chdir: "{{ handle_tool.dir }}"
+      when: cordra_download.changed and cordra[instance_type].base_uri!=""
+
+    - name: Delete handle ids from handle server before starting Cordra {{ inventory_hostname }}
+      shell:
+        cmd: ./bin/hdl-delete {{ cordra[instance_type].handle_prefix }}/repo 300 {{ cordra.dir }/data/privatekey {{ cordra.dir }/hdl-list-to-delete.txt
+        chdir: "{{ handle_tool.dir }}"
+      when: cordra_download.changed and cordra[instance_type].base_uri!=""
+
+    - name: Copy delete_handle_ids_from_handle_server.sh script on {{ inventory_hostname }}
+      template:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        owner: "{{ server.user }}"
+        group: "{{ server.group }}"
+        mode: a+x
+      with_items:
+        - { src: 'cordra/delete_handle_ids_from_handle_server.sh.j2', dest: '{{ cordra.dir }}/bin' }
+      when: cordra_download.changed
+
 #    - name: Start Cordra on {{ inventory_hostname }}
 #      shell:
 #        cmd: nohup ./startup >> ./cordra.log 2>&1 &
@@ -103,27 +166,6 @@
     - pause:
         minutes: 1
 
-    - name: Copy Cordra handle keys on {{ inventory_hostname }}
-      copy:
-        src: "{{ item.src }}"
-        dest: "{{ item.dest }}"
-        owner: "{{ server.user }}"
-        group: "{{ server.group }}"
-      with_items:
-        - { src: '{{ "cordra/" + instance_type + "/cordra_privatekey" }}', dest: '{{ cordra.dir + "/data/privatekey" }}' }
-        - { src: '{{ "cordra/" + instance_type + "/cordra_publickey" }}', dest: '{{ cordra.dir + "/data/publickey" }}' }
-      when: cordra_download.changed and instance_type != 'cordra_prov_server'
-
-    - name: Set up file with doip commands to load initial data on {{ inventory_hostname }}
-      template:
-        src: "{{ 'cordra/doip_load_initial_data.txt.j2' }}"
-        dest: "{{ cordra.dir + '/doip_load_initial_data.txt'}}"
-        owner: "{{ server.user }}"
-        group: "{{ server.group }}"
-      vars:
-        digital_objects: "{{ lookup('file', 'cordra/'+instance_type+'/initial_data.json') | from_json }}"
-      when: cordra_service.changed
-
     # Restart Cordra as initial start doesn't have the doip service
     - name: Restart Cordra service on {{ inventory_hostname }}
       systemd:
@@ -148,8 +190,8 @@
       become_user: "{{ server.user }}"
       when: cordra_service.changed
 
-  become: true
-  become_user: root
+    become: true
+    become_user: root
   rescue:
     - debug:
         msg: "ERROR in Setup Cordra on {{ inventory_hostname }}"

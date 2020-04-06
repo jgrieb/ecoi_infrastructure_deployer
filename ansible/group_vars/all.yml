@@ -46,6 +46,10 @@ cordra:
     db_name: "cordra-prov"
     initial_users: []
 
+handle_tool:
+  dir: "{{ server.apps_dir + '/handle'}}"
+  distribution_url: https://www.handle.net/hnr-source/handle-9.2.0-distribution.tar.gz
+
 mongodb:
   dir: "{{ server.apps_dir + '/mongodb'}}"
   distribution_url: https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu1804-4.2.3.tgz
@@ -55,6 +59,7 @@ mongodb:
   cordra_password: "{{ server.conf.mongodb.cordra_password }}"
   cordra_db_name: "{{ cordra.cordra_nsidr_server.db_name }}"
   cordra_prov_db_name: "{{ cordra.cordra_prov_server.db_name }}"
+  backup: "{{ server.conf.mongodb.backup }}"
 
 
 elk_version: 7.6.0

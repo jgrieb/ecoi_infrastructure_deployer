@@ -27,8 +27,8 @@
     "cordra": {
       "admin_password":"PASSWORD",
       "users": [
-        {"username":"francisco","password": "PASSWORD"},
-        {"username":"alex","password": "PASSWORD"}
+        {"username":"francisco","password": "PASSWORD","id":"francisco"},
+        {"username":"alex","password": "PASSWORD","id":"alex"}
       ]
     },
     "elasticserch": {
@@ -36,7 +36,16 @@
     },
     "mongodb": {
       "admin_password":"PASSWORD",
-      "cordra_password":"PASSWORD"
+      "cordra_password":"PASSWORD",
+      "backup": {
+        "s3": {
+          "region": "eu-west-2",
+          "aws_access_key_id": "IAM_USER_ACCESS_KEY_ID",
+          "aws_secret_access_key": "IAM_USER_SECRECT_ACCESS_KEY",
+          "bucket": "cardiff-cordra-backup",
+          "storage_class": "ONEZONE_IA"
+        }
+      }
     },
     "grafana": {
       "admin_password":"PASSWORD",

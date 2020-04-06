@@ -1,0 +1,52 @@
+#!/bin/sh
+
+# DB host
+HOST={{mongodb.host_ip}}
+
+# DB port
+PORT={{mongodb.port}}
+
+# DB username
+DBUSERNAME=root
+
+# DB password
+DBPASSWORD={{ mongodb.admin_password }}
+
+# S3 bucket name
+BUCKET={{ mongodb.backup.s3.bucket }}
+
+# S3 storage class
+STORAGECLASS={{ mongodb.backup.s3.storage_class }}
+
+# Current time
+TIME=`/bin/date +%Y-%m-%d_%T`
+
+# Backup directory
+DEST={{ server.apps_dir }}/mongodb_backup/tmp_bk_folder
+
+# Tar file of backup directory
+TAR={{ server.apps_dir }}/mongodb_backup/mongodb_$TIME.tar
+
+# Create backup dir (-p to avoid warning if already exists)
+/bin/mkdir -p $DEST
+
+# Log
+echo "Backing up $HOST to s3://$BUCKET/ on mongodb_$TIME";
+
+# Dump from mongodb host into backup directory
+{{ mongodb.dir }}/bin/mongodump --host $HOST --port $PORT --username $DBUSERNAME --password $DBPASSWORD --authenticationDatabase admin -o $DEST
+
+# Create tar of backup directory
+/bin/tar cvf $TAR -C $DEST .
+
+# Upload tar to s3
+/usr/local/bin/aws s3 cp $TAR s3://$BUCKET/ --storage-class $STORAGECLASS
+
+# Remove tar file locally
+/bin/rm -f $TAR
+
+# Remove backup directory
+/bin/rm -rf $DEST
+
+# All done
+echo "Backup available at https://s3.amazonaws.com/$BUCKET/mongodb_$TIME.tar"

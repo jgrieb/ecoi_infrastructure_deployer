@@ -9,6 +9,9 @@
     - import_tasks: 03-setup_mongodb.yml
       tags: [setup_mongodb]
 
+    - import_tasks: 04-backup_mongodb.yml
+      tags: [backup_mongodb]
+
   rescue:
     - debug:
         msg: "ERROR in Setting up server with Mongodb on {{ inventory_hostname }}"

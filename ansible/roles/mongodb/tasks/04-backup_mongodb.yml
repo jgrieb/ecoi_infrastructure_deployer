@@ -1,0 +1,66 @@
+---
+- name: Setup Backup Mongodb on {{ inventory_hostname }}
+  block:
+    # Download MongoDB distribution and unzip in /opt as zip has folder mongodb-x.x.x
+    - name: Download AWS cli on {{ inventory_hostname }}
+      unarchive:
+        src: "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"
+        remote_src: yes
+        dest: "{{ server.apps_dir }}"
+        creates: "{{ server.apps_dir + '/aws'}}"
+      register: aws_cli_download
+
+    - name: Install AWS cli on {{ inventory_hostname }}
+      shell:
+        cmd: install
+        chdir: "{{ server.apps_dir + '/aws'}}"
+        creates: "/usr/local/bin/aws"
+      when: aws_cli_download.changed
+
+    - name: Setup AWS CLI on {{ inventory_hostname }}
+      template:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        owner: "{{ server.user }}"
+        group: "{{ server.group }}"
+      with_items:
+        - { src: 'mongodb/backup/s3/config.j2', dest: '{{ mongodb.dir + "/conf/mongod.conf"}}' }
+        - { src: 'mongodb/backup/s3/credentials.j2', dest: '{{ mongodb.dir + "/initial_setup.js" }}' }
+      when: mongodb_download.changed
+
+    - name: Create mongodb_backup directory if it does not exist
+      file:
+        path: "{{ server.apps_dir }}/mongodb_backup"
+        owner: "{{ server.user }}"
+        group: "{{ server.group }}"
+        state: directory
+      when: aws_cli_download.changed
+
+    - name: Copy mongodb-s3-backup script on {{ inventory_hostname }}
+      template:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        owner: "{{ server.user }}"
+        group: "{{ server.group }}"
+        mode: a+x
+      with_items:
+        - { src: 'mongodb/backup/mongodb-s3-backup.sh.j2', dest: '{{ server.apps_dir }}/mongodb_backup' }
+      when: aws_cli_download.changed
+
+    - name: Add cronjob for automatic backup
+      cron:
+        name: mongodb_backup
+        special_time: daily
+        job: {{ server.apps_dir }}/mongodb_backup/mongodb-s3-backup.sh > {{ server.apps_dir }}/mongodb_backup/mongodb-s3-backup.log
+      when: aws_cli_download.changed
+      become_user: "{{ server.user }}"
+
+  become: true
+  become_user: root
+  rescue:
+    - debug:
+        msg: "ERROR in Setup backup Mongodb"
+  always:
+    - debug:
+        msg: "Setup backup Mongodb FINISHED"
+  tags: ["install_software"]

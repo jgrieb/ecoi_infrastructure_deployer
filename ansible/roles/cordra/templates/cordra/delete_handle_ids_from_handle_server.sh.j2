@@ -1,0 +1,4 @@
+#!/bin/sh
+
+{{ handle_tool.dir }}/bin/hdl-list {{ cordra[instance_type].handle_prefix }}/repo 300 {{ cordra.dir }}/data/privatekey {{ cordra[instance_type].handle_prefix }} > {{ cordra.dir }}/hdl-list-to-delete.txt
+{{ handle_tool.dir }}/bin/hdl-delete {{ cordra[instance_type].handle_prefix }}/repo 300 {{ cordra.dir }/data/privatekey {{ cordra.dir }/hdl-list-to-delete.txt

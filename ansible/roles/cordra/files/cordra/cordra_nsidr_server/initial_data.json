@@ -1,6 +1,7 @@
 [
   {
     "type": "Schema",
+    "id": "20.5000.1025/DigitalSpecimen_schema",
     "attributes": {
       "content": {
         "name": "DigitalSpecimen",
@@ -23,7 +24,7 @@
             }
           },
           "$schema": "http://json-schema.org/schema#",
-          "$id": "http://nsidr.org/schemas/dsschema.json",
+          "$id": "http://nsidr.org/schemas/DigitalSpecimen",
           "type": "object",
           "title": "DigitalSpecimen",
           "required": [
@@ -319,6 +320,7 @@
   },
   {
     "type": "Schema",
+    "id": "20.5000.1025/Role_schema",
     "attributes": {
       "content": {
         "name": "Role",
@@ -365,6 +367,7 @@
   },
   {
     "type": "Schema",
+    "id": "20.5000.1025/Museum_schema",
     "attributes": {
       "content": {
         "name": "Museum",
@@ -411,6 +414,7 @@
   },
   {
     "type": "Role",
+    "id": "20.5000.1025/Scientist",
     "attributes": {
       "content": {
         "name": "Scientist",
@@ -421,6 +425,7 @@
   },
   {
     "type": "Museum",
+    "id": "20.5000.1025/NHM_London",
     "attributes": {
       "content": {
         "name": "National History Museum London",
