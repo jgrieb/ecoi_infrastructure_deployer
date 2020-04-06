@@ -433,5 +433,18 @@
       }
     },
     "elements": []
+  },
+  {
+    "id": "20.5000.1025/testDS",
+    "type": "DigitalSpecimen",
+    "attributes": {
+      "content": {
+        "physicalSpecimenId": "testDS",
+        "institutionCode": "CU",
+        "midslevel": 0,
+        "scientificName": "Test DS"
+      }
+    },
+    "elements": []
   }
 ]
