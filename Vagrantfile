@@ -286,11 +286,11 @@ Vagrant.configure('2') do |config|
       end
 
       # Definition of the virtual machine that will be hosting mongodb
-      config.vm.define "database_server", autostart:true do |database_server|
-          machine_name = 'database_server'
+      config.vm.define "db_server", autostart:true do |db_server|
+          machine_name = 'db_server'
 
           # Specific setup for this virtual machine when using the hyperv provider
-          database_server.vm.provider "hyperv" do |h, override|
+          db_server.vm.provider "hyperv" do |h, override|
             h.vmname = machine_name
             h.maxmemory = 1536
             h.memory = 1024
@@ -298,14 +298,14 @@ Vagrant.configure('2') do |config|
           end
 
           # Specific setup for this virtual machine when using the aws provider
-          database_server.vm.provider :aws do |aws|
+          db_server.vm.provider :aws do |aws|
             aws.tags = {Name: machine_name}
             aws.instance_type= 't3.small'
             aws.security_groups = ['ssh','monitoring_agent','mongodb_server']
           end
 
           # Specific setup for this virtual machine when using the openstack provider
-          database_server.vm.provider :openstack do |os, override|
+          db_server.vm.provider :openstack do |os, override|
             os.server_name = machine_name
             os.flavor = 'm1.medium'
             os.floating_ip_pool = "public"
@@ -313,13 +313,13 @@ Vagrant.configure('2') do |config|
           end
 
           # Provisioner that runs the script that updates the ansible inventory with the IP assigned to this virtual machine
-          database_server.vm.provision "update_inventory", type: "shell" do |s_inventory|
+          db_server.vm.provision "update_inventory", type: "shell" do |s_inventory|
             s_inventory.inline        = $update_inventory_script
             s_inventory.args          = [mount_synced_folder+'/ansible/inventory.ini',machine_name,ssh_username]
             s_inventory.privileged    = false
           end
 
-          database_server.trigger.before :destroy do |trigger|
+          db_server.trigger.before :destroy do |trigger|
             trigger.warn = "Backing up database before destroying machine"
             trigger.run_remote = {inline: "/opt/mongodb_backup/mongodb-s3-backup.sh"}
           end
@@ -500,30 +500,16 @@ Vagrant.configure('2') do |config|
         config.trigger.after [:up] do |trigger|
           trigger.info = "Updating ansible inventory in host machine with a vagrant trigger after up"
           trigger.ruby do |env,machine|
-            path_inventory_file = './ansible/inventory.ini'
-            inventory_content = File.read(path_inventory_file)
+			puts("Obtaining private ip for machine: #{machine.name}")
 
-            inventory_content = inventory_content.gsub(/ansible_ssh_user=(.*)/,"ansible_ssh_user="+ssh_username)
-
-            monitoring_server_ip = %x{vagrant ssh monitoring_server -c "hostname -I"}
-            inventory_content = inventory_content.gsub(/monitoring_server ansible_host=(.*)/, "monitoring_server ansible_host="+monitoring_server_ip)
-
-            database_server_ip = %x{vagrant ssh database_server -c "hostname -I"}
-            inventory_content = inventory_content.gsub(/db_server ansible_host=(.*)/, "db_server ansible_host="+database_server_ip)
-
-            search_engine_server_ip = %x{vagrant ssh search_engine_server -c "hostname -I"}
-            inventory_content = inventory_content.gsub(/search_engine_server ansible_host=(.*)/, "search_engine_server ansible_host="+search_engine_server_ip)
-
-            cordra_prov_server_ip = %x{vagrant ssh cordra_prov_server -c "hostname -I"}
-            inventory_content = inventory_content.gsub(/cordra_prov_server ansible_host=(.*)/, "cordra_prov_server ansible_host="+cordra_prov_server_ip)
-
-            cordra_nsidr_server_ip = %x{vagrant ssh cordra_nsidr_server -c "hostname -I"}
-            inventory_content = inventory_content.gsub(/cordra_nsidr_server ansible_host=(.*)/, "cordra_nsidr_server ansible_host="+cordra_nsidr_server_ip)
-
-            ds_viewer_server_ip = %x{vagrant ssh ds_viewer_server -c "hostname -I"}
-            inventory_content = inventory_content.gsub(/ds_viewer_server ansible_host=(.*)/, "ds_viewer_server ansible_host="+ds_viewer_server_ip)
-
-            File.open(path_inventory_file, "w") {|file| file.puts inventory_content }
+			machine.communicate.execute('hostname -I') do |type, hostname_i|
+				puts("#{machine.name} ip = " + hostname_i.to_s)
+				path_inventory_file = './ansible/inventory.ini'
+				inventory_content = File.read(path_inventory_file)
+				inventory_content = inventory_content.gsub(/ansible_ssh_user=(.*)/,"ansible_ssh_user="+ssh_username)
+				inventory_content = inventory_content.gsub(/#{machine.name} ansible_host=(.*)/, "#{machine.name} ansible_host="+hostname_i)
+				File.open(path_inventory_file, "w") {|file| file.puts inventory_content }
+			end
           end
         end
       end
