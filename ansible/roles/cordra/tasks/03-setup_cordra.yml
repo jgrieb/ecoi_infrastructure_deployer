@@ -63,6 +63,7 @@
         keystore_path: "{{ java_home + '/jre/lib/security/cacerts' }}"
         keystore_pass: changeit
         state: present
+      when: cordra_download.changed
 
     - name: Copy Cordra handle keys on {{ inventory_hostname }}
       copy:
@@ -82,8 +83,8 @@
         owner: "{{ server.user }}"
         group: "{{ server.group }}"
       vars:
-        digital_objects: "{{ lookup('file', 'cordra/'+instance_type+'/initial_data.json') | from_json }}"
-      when: cordra_service.changed
+        digital_objects: "{{ lookup('template', 'cordra/'+instance_type+'/initial_data.json.j2') }}"
+      when: cordra_download.changed
 
     - name: Download and unarchive Handle tools on {{ inventory_hostname }}
       unarchive:
@@ -110,9 +111,9 @@
         chdir: "{{ handle_tool.dir }}"
       when: cordra_download.changed and cordra[instance_type].base_uri!=""
 
-    - name: Delete handle ids from handle server before starting Cordra {{ inventory_hostname }}
+    - name: Delete handle ids from handle server before starting Cordra on {{ inventory_hostname }}
       shell:
-        cmd: ./bin/hdl-delete {{ cordra[instance_type].handle_prefix }}/repo 300 {{ cordra.dir }/data/privatekey {{ cordra.dir }/hdl-list-to-delete.txt
+        cmd: ./bin/hdl-delete {{ cordra[instance_type].handle_prefix }}/repo 300 {{ cordra.dir }}/data/privatekey {{ cordra.dir }}/hdl-list-to-delete.txt
         chdir: "{{ handle_tool.dir }}"
       when: cordra_download.changed and cordra[instance_type].base_uri!=""
 
@@ -186,12 +187,12 @@
         # - "openssl s_client -connect {{ cordra[instance_type].host_ip }}:{{ cordra.doip_port }} < doip_load_initial_data.txt"
         - "openssl s_client -connect {{ cordra[instance_type].host_ip }}:{{ cordra.doip_port }} -ign_eof < doip_load_initial_data.txt &"
         - "sleep 60"
-        - "rm doip_load_initial_data.txt"
+        # - "rm doip_load_initial_data.txt"
       become_user: "{{ server.user }}"
       when: cordra_service.changed
 
-    become: true
-    become_user: root
+  become: true
+  become_user: root
   rescue:
     - debug:
         msg: "ERROR in Setup Cordra on {{ inventory_hostname }}"
