@@ -88,7 +88,7 @@
         - { body: '{{ lookup("template","grafana/notification_channels/ecoi_notification_channel.json.j2") }}', url: '{{ "/api/alert-notifications" }}' }
         - { body: '{{ lookup("template","grafana/dashboards/cordra_nsidr_ds.json.j2") }}', url: '{{ "/api/dashboards/db" }}' }
         - { body: '{{ lookup("template","grafana/dashboards/ecoi_systemd_services.json.j2") }}', url: '{{ "/api/dashboards/db" }}' }
-        - - { body: '{{ lookup("template","grafana/dashboards/system_status.json.j2") }}', url: '{{ "/api/dashboards/db" }}' }
+        - { body: '{{ lookup("file","grafana/dashboards/system_status.json") }}', url: '{{ "/api/dashboards/db" }}' }
       when: grafana_service.changed
 
   become: true
