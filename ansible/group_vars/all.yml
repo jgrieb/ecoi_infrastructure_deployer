@@ -7,6 +7,7 @@ server:
   user: "{{ server_user }}"
   group: "{{ server_user }}"
   conf: "{{ config }} "
+  aws_conf: "{{ config['infrastructure']['aws'] }}"
   domain: "nsidr.org"
 
 cordra:

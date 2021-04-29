@@ -13,6 +13,9 @@
           - libcurl4
           - openssl
           - python-apt
+          - python-pip
+          - python3-pip
+          - python-setuptools
 
     - name: Create permanent environment variables on /etc/environment (which is system-wide, all users) on {{ inventory_hostname }}
       lineinfile:
@@ -21,6 +24,10 @@
         regexp: "^{{ item.key | regex_escape() }}="
         line: "{{ item.key }}={{ item.value}}"
       with_items: "{{ os_environment_variables }}"
+
+    - name: Install Python package boto3 with pip required by aws_s3 module on {{ inventory_hostname }}
+      pip:
+        name: boto3
 
   become: true
   become_user: root

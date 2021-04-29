@@ -2,15 +2,24 @@
 - name: Setup Cordra on {{ inventory_hostname }}
   block:
     # Download cordra distribution and unzip in /opt as zip has folder cordra-x.x.x
-    - name: Download and unarchive CORDRA on {{ inventory_hostname }}
+    - name: Download CORDRA from AWSS3 on {{ inventory_hostname }}
+      aws_s3:
+        bucket: dissco-cordra-distributions
+        object: cordra-2.0.0-distribution-fran.zip
+        dest: /tmp/cordra-2.0.0-distribution-fran.zip
+        mode: get
+        aws_access_key: "{{ server.aws_conf.aws_access_key_id }}"
+        aws_secret_key: "{{ server.aws_conf.aws_secret_access_key }}"
+      register: cordra_download
+
+    - name: Unarchive CORDRA on {{ inventory_hostname }}
       unarchive:
-        src: "{{ cordra.distribution_url }}"
-        remote_src: yes
+        src: /tmp/cordra-2.0.0-distribution-fran.zip
         dest: "{{ server.apps_dir }}"
         creates: "{{ cordra.dir }}"
         owner: "{{ server.user }}"
         group: "{{ server.group }}"
-      register: cordra_download
+      when: cordra_download.changed
 
     - name: Create symbolic link between cordra-x.x.x and cordra directory on {{ inventory_hostname }}
       shell:
@@ -38,10 +47,20 @@
         state: directory
       when: cordra_download.changed and instance_type != 'cordra_prov_server'
 
-    - name: Install DOEC library on {{ inventory_hostname }}
-      get_url:
-        url: "{{ cordra.doec_library_url }}"
-        dest: "{{ cordra.dir }}/data/lib"
+    - name: Download DOEC library from AWSS3 on {{ inventory_hostname }}
+      aws_s3:
+        bucket: dissco-cordra-distributions
+        object: doec-1.0.0-jar-with-dependencies.jar
+        dest: /tmp/doec-1.0.0-jar-with-dependencies.jar
+        mode: get
+        aws_access_key: "{{ server.aws_conf.aws_access_key_id }}"
+        aws_secret_key: "{{ server.aws_conf.aws_secret_access_key }}"
+      when: cordra_download.changed and instance_type != 'cordra_prov_server'
+
+    - name: Install DOEC library from temp folder {{ inventory_hostname }}
+      copy:
+        src: "/tmp/doec-1.0.0-jar-with-dependencies.jar"
+        dest: "{{ cordra.dir }}/data/lib/doec-1.0.0-jar-with-dependencies.jar"
         owner: "{{ server.user }}"
         group: "{{ server.group }}"
       when: cordra_download.changed and instance_type != 'cordra_prov_server'
@@ -128,22 +147,22 @@
         - { src: 'cordra/delete_handle_ids_from_handle_server.sh.j2', dest: '{{ cordra.dir }}/bin' }
       when: cordra_download.changed
 
-#    - name: Start Cordra on {{ inventory_hostname }}
-#      shell:
-#        cmd: nohup ./startup >> ./cordra.log 2>&1 &
-#        chdir: "{{ cordra.dir }}"
-#      become_user: "{{ server.user }}"
-#      when: cordra_download.changed
-#      register: cordra_up
-#
-#    - name: Wait for http cordra port to become open on the host, don't start checking for 5 seconds on {{ inventory_hostname }}
-#      wait_for:
-#        port: "{{ cordra.http_internal_port }}"
-#        delay: 5
-#        timeout: 300
-#        state: started
-#        msg: "CORDRA HTTP PORT is not Listening"
-#      when: cordra_download.changed
+    # - name: Start Cordra on {{ inventory_hostname }}
+    #  shell:
+    #    cmd: nohup ./startup >> ./cordra.log 2>&1 &
+    #    chdir: "{{ cordra.dir }}"
+    #  become_user: "{{ server.user }}"
+    #  when: cordra_download.changed
+    #  register: cordra_up
+
+    # - name: Wait for http cordra port to become open on the host, don't start checking for 5 seconds on {{ inventory_hostname }}
+    #  wait_for:
+    #    port: "{{ cordra.http_internal_port }}"
+    #    delay: 5
+    #    timeout: 300
+    #    state: started
+    #    msg: "CORDRA HTTP PORT is not Listening"
+    #  when: cordra_download.changed
 
     - name: Config Cordra service on {{ inventory_hostname }}
       template:
@@ -187,7 +206,7 @@
         - "openssl s_client -connect {{ cordra[instance_type].host_ip }}:{{ cordra.doip_port }} < doip_load_initial_data.txt"
         - "openssl s_client -connect {{ cordra[instance_type].host_ip }}:{{ cordra.doip_port }} -ign_eof < doip_load_initial_data.txt &"
         - "sleep 60"
-         - "rm doip_load_initial_data.txt"
+        - "rm doip_load_initial_data.txt"
       become_user: "{{ server.user }}"
       when: cordra_service.changed
 
