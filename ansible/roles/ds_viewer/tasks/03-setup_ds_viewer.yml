@@ -39,6 +39,13 @@
         - { line: '    config.cordra_server_prefix = "{{ cordra.cordra_nsidr_server.handle_prefix }}"', regexp: 'config.cordra_server_prefix' }
       when: not rbenv_dir.stat.exists
 
+    - name: "Update ruby dependencies bundle on {{ inventory_hostname }}"
+      command: "{{ server.apps_dir}}/rbenvInit.sh bundle update mimemagic"
+      args:
+        chdir: "{{ ds_viewer.dir }}"
+      become_user: "{{ server.user }}"
+      when: not ds_app_dir.stat.exists
+
     - name: "Bundle install on {{ inventory_hostname }}"
       command: "{{ server.apps_dir}}/rbenvInit.sh bundle install"
       args:
