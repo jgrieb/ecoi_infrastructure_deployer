@@ -8,8 +8,8 @@
         object: cordra-2.0.0-distribution-fran.zip
         dest: /tmp/cordra-2.0.0-distribution-fran.zip
         mode: get
-        aws_access_key: "{{ server.aws_conf.aws_access_key_id }}"
-        aws_secret_key: "{{ server.aws_conf.aws_secret_access_key }}"
+        aws_access_key: "{{ server.aws_conf.access_key_id }}"
+        aws_secret_key: "{{ server.aws_conf.secret_access_key }}"
       register: cordra_download
 
     - name: Unarchive CORDRA on {{ inventory_hostname }}
@@ -53,8 +53,8 @@
         object: doec-1.0.0-jar-with-dependencies.jar
         dest: /tmp/doec-1.0.0-jar-with-dependencies.jar
         mode: get
-        aws_access_key: "{{ server.aws_conf.aws_access_key_id }}"
-        aws_secret_key: "{{ server.aws_conf.aws_secret_access_key }}"
+        aws_access_key: "{{ server.aws_conf.access_key_id }}"
+        aws_secret_key: "{{ server.aws_conf.secret_access_key }}"
       when: cordra_download.changed and instance_type != 'cordra_prov_server'
 
     - name: Install DOEC library from temp folder {{ inventory_hostname }}
