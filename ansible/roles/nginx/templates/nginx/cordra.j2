@@ -1,5 +1,8 @@
 server {
     server_name {{ item.value.domain }};
+
+    client_max_body_size 10M;
+
     {% if item.value.ssl_enabled %}
         listen {{ item.value.external_port }} ssl;
         listen [::]:{{ item.value.external_port }} ssl http2;
