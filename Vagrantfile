@@ -34,6 +34,7 @@ end
 config_data = JSON.parse(File.read('config/config.json'))
 deployment_type=config_data['deployment']['type']
 provider = config_data['deployment']['default_provider']
+deployment_environment = config_data['deployment']['environment']
 
 # Overwrite deploymentType and provider in case they are passed as parameters
 opts = GetoptLong.new(
@@ -61,9 +62,12 @@ external_private_key_path='keys/external/private.key'
 internal_private_key_path='keys/internal/private.key'
 
 # Set ssh username depending on provider
-
-ssh_username="ubuntu"
-create_keys_files(config_data,external_private_key_path,internal_private_key_path)
+if provider.casecmp?("virtualbox") then
+    ssh_username="vagrant"
+else
+    ssh_username="ubuntu"
+    create_keys_files(config_data,external_private_key_path,internal_private_key_path)
+end
 
 
 Vagrant.configure('2') do |config|
@@ -78,6 +82,12 @@ Vagrant.configure('2') do |config|
       trigger.ruby do |env,machine|
         create_keys_files(config_data,external_private_key_path,internal_private_key_path)
       end
+  end
+
+  # Default configuration for virtualbox machines
+  config.vm.provider "virtualbox" do |h, override|
+    override.vm.box = "bento/ubuntu-18.04"
+    override.vm.synced_folder ".", mount_synced_folder, type:"rsync", rsync__auto: true, rsync__exclude: [".git/","/config/","/keys/external/"]
   end
 
   # Default configuration for AWS virtual machines
@@ -144,15 +154,29 @@ Vagrant.configure('2') do |config|
     s_ufw_ssh.inline        = $ufw_ssh_script
   end
 
+
   # Definition of the virtual machine that will be hosting the monitoring software like prometheus, kibana, grafana, etc.
-  config.vm.define "monitoring_server", autostart:true do |monitoring_server|
-      machine_name = 'monitoring_server'
+  monitoring_server_name = 'monitoring_server'
+  if deployment_environment.casecmp?("test") then
+    monitoring_server_name.prepend('test_')
+  end
+  config.vm.define monitoring_server_name, autostart:true do |monitoring_server|
+      machine_name = monitoring_server_name
+
+      # Specific setup for this virtual machine when using the virtualbox provider
+      monitoring_server.vm.provider "virtualbox" do |h, override|
+        monitoring_server.vm.network "private_network", name: "vboxnet0", ip: "172.28.128.3", adapter: 2
+        h.memory = 1024
+        h.cpus = 1
+      end
 
       # Specific setup for this virtual machine when using the aws provider
       monitoring_server.vm.provider :aws do |aws|
         aws.tags = {Name: machine_name}
         aws.instance_type= 't3.small'
-        aws.elastic_ip = '18.130.121.175'
+        if !deployment_environment.casecmp?("test") then
+          aws.elastic_ip = '18.130.121.175'
+        end
         aws.security_groups = ['ssh','monitoring_agent','monitoring_server','web_server']
       end
 
@@ -164,9 +188,21 @@ Vagrant.configure('2') do |config|
       end
   end
 
+
   # Definition of the virtual machine that will be hosting mongodb
-  config.vm.define "db_server", autostart:true do |db_server|
-      machine_name = 'db_server'
+  db_server_name = 'db_server'
+  if deployment_environment.casecmp?("test") then
+    db_server_name.prepend('test_')
+  end
+  config.vm.define db_server_name, autostart:true do |db_server|
+      machine_name = db_server_name
+
+      # Specific setup for this virtual machine when using the virtualbox provider
+      db_server.vm.provider "virtualbox" do |h, override|
+        db_server.vm.network "private_network", name: "vboxnet0", ip: "172.28.128.4", adapter: 2
+        h.memory = 1024
+        h.cpus = 1
+      end
 
       # Specific setup for this virtual machine when using the aws provider
       db_server.vm.provider :aws do |aws|
@@ -182,15 +218,29 @@ Vagrant.configure('2') do |config|
         s_inventory.privileged    = false
       end
 
-      db_server.trigger.before :destroy do |trigger|
-        trigger.warn = "Backing up database before destroying machine"
-        trigger.run_remote = {inline: "/opt/mongodb_backup/mongodb-s3-backup.sh"}
+      if !provider.casecmp?("virtualbox") && !deployment_environment.casecmp?("test") then
+        db_server.trigger.before :destroy do |trigger|
+          trigger.warn = "Backing up database before destroying machine"
+          trigger.run_remote = {inline: "/opt/mongodb_backup/mongodb-s3-backup.sh"}
+        end
       end
   end
 
+
   # Definition of the virtual machine that will be hosting elasticsearch and logstash
-  config.vm.define "search_engine_server", autostart:true do |search_engine_server|
-      machine_name = 'search_engine_server'
+  search_engine_server_name = 'search_engine_server'
+  if deployment_environment.casecmp?("test") then
+    search_engine_server_name.prepend('test_')
+  end
+  config.vm.define search_engine_server_name, autostart:true do |search_engine_server|
+      machine_name = search_engine_server_name
+
+      # Specific setup for this virtual machine when using the virtualbox provider
+      search_engine_server.vm.provider "virtualbox" do |h, override|
+        search_engine_server.vm.network "private_network", name: "vboxnet0", ip: "172.28.128.5", adapter: 2
+        h.memory = 1536
+        h.cpus = 1
+      end
 
       # Specific setup for this virtual machine when using the aws provider
       search_engine_server.vm.provider :aws do |aws|
@@ -207,16 +257,30 @@ Vagrant.configure('2') do |config|
       end
   end
 
-  # Definition of the virtual machine that will be hosting cordra provenance server
-  config.vm.define "ds_viewer_server", autostart:true do |ds_viewer_server|
-      machine_name = 'ds_viewer_server'
+
+  # Definition of the virtual machine that will be hosting cordra ds viewer server
+  ds_viewer_server_name = 'ds_viewer_server'
+  if deployment_environment.casecmp?("test") then
+    ds_viewer_server_name.prepend('test_')
+  end
+  config.vm.define ds_viewer_server_name, autostart:true do |ds_viewer_server|
+      machine_name = ds_viewer_server_name
+
+      # Specific setup for this virtual machine when using the virtualbox provider
+      ds_viewer_server.vm.provider "virtualbox" do |h, override|
+        ds_viewer_server.vm.network "private_network", name: "vboxnet0", ip: "172.28.128.6", adapter: 2
+        h.memory = 1024
+        h.cpus = 1
+      end
 
       # Specific setup for this virtual machine when using the aws provider
       ds_viewer_server.vm.provider :aws do |aws|
         aws.tags = {Name: machine_name}
         aws.instance_type= 't3.small'
+        if !deployment_environment.casecmp?("test") then
+          aws.elastic_ip = '18.130.207.21'
+        end
         aws.security_groups = ['ssh','monitoring_agent','web_server','rails_server']
-        aws.elastic_ip = '18.130.207.21'
       end
 
       # Provisioner that runs the script that updates the ansible inventory with the IP assigned to this virtual machine
@@ -227,15 +291,29 @@ Vagrant.configure('2') do |config|
       end
   end
 
+
   # Definition of the virtual machine that will be hosting cordra provenance server
-  config.vm.define "cordra_prov_server", autostart:true do |cordra_prov_server|
-      machine_name = 'cordra_prov_server'
+  cordra_prov_server_name = 'cordra_prov_server'
+  if deployment_environment.casecmp?("test") then
+    cordra_prov_server_name.prepend('test_')
+  end
+  config.vm.define cordra_prov_server_name, autostart:true do |cordra_prov_server|
+      machine_name = cordra_prov_server_name
+
+      # Specific setup for this virtual machine when using the virtualbox provider
+      cordra_prov_server.vm.provider "virtualbox" do |h, override|
+        cordra_prov_server.vm.network "private_network", name: "vboxnet0", ip: "172.28.128.7", adapter: 2
+        h.memory = 1024
+        h.cpus = 1
+      end
 
       # Specific setup for this virtual machine when using the aws provider
       cordra_prov_server.vm.provider :aws do |aws|
         aws.tags = {Name: machine_name}
         aws.instance_type= 't3.small'
-        aws.elastic_ip = '3.11.185.90'
+        if !deployment_environment.casecmp?("test") then
+          aws.elastic_ip = '3.11.185.90'
+        end
         aws.security_groups = ['ssh','monitoring_agent','web_server','cordra_server']
       end
 
@@ -247,15 +325,29 @@ Vagrant.configure('2') do |config|
       end
   end
 
+
+  cordra_nsidr_server_name = 'cordra_nsidr_server'
+  if deployment_environment.casecmp?("test") then
+    cordra_nsidr_server_name.prepend('test_')
+  end
   # Definition of the virtual machine that will be hosting cordra repository server
-  config.vm.define "cordra_nsidr_server", autostart:true do |cordra_nsidr_server|
-      machine_name = 'cordra_nsidr_server'
+  config.vm.define cordra_nsidr_server_name, autostart:true do |cordra_nsidr_server|
+      machine_name = cordra_nsidr_server_name
+
+      # Specific setup for this virtual machine when using the virtualbox provider
+      cordra_nsidr_server.vm.provider "virtualbox" do |h, override|
+        cordra_nsidr_server.vm.network "private_network", name: "vboxnet0", ip: "172.28.128.8", adapter: 2
+        h.memory = 1024
+        h.cpus = 1
+      end
 
       # Specific setup for this virtual machine when using the aws provider
       cordra_nsidr_server.vm.provider :aws do |aws|
         aws.tags = {Name: machine_name}
         aws.instance_type= 't3.small'
-        aws.elastic_ip = '3.9.186.140'
+        if !deployment_environment.casecmp?("test") then
+          aws.elastic_ip = '3.9.186.140'
+        end
         aws.security_groups = ['ssh','monitoring_agent','web_server','cordra_server']
       end
 
@@ -288,24 +380,28 @@ Vagrant.configure('2') do |config|
         }
       end
 
-      cordra_nsidr_server.trigger.before :destroy do |trigger|
-        trigger.warn = "Deleting handle ids in handle server before destroying machine"
-        trigger.run_remote = {inline: "/opt/cordra/bin/delete_handle_ids_from_handle_server.sh"}
+      if !provider.casecmp?("virtualbox") && !deployment_environment.casecmp?("test") then
+        cordra_nsidr_server.trigger.before :destroy do |trigger|
+          trigger.warn = "Deleting handle ids in handle server before destroying machine"
+          trigger.run_remote = {inline: "/opt/cordra/bin/delete_handle_ids_from_handle_server.sh"}
+        end
       end
 
-      config.trigger.after [:up] do |trigger|
-        trigger.info = "Updating ansible inventory in host machine with a vagrant trigger after up"
-        trigger.ruby do |env,machine|
-		      puts("Obtaining private ip for machine: #{machine.name}")
+      if !provider.casecmp?("virtualbox") then
+        config.trigger.after [:up] do |trigger|
+          trigger.info = "Updating ansible inventory in host machine with a vagrant trigger after up"
+          trigger.ruby do |env,machine|
+      			puts("Obtaining private ip for machine: #{machine.name}")
 
-    			machine.communicate.execute('hostname -I') do |type, hostname_i|
-    				puts("#{machine.name} ip = " + hostname_i.to_s)
-    				path_inventory_file = './ansible/inventory.ini'
-    				inventory_content = File.read(path_inventory_file)
-    				inventory_content = inventory_content.gsub(/ansible_ssh_user=(.*)/,"ansible_ssh_user="+ssh_username)
-    				inventory_content = inventory_content.gsub(/#{machine.name} ansible_host=(.*)/, "#{machine.name} ansible_host="+hostname_i)
-    				File.open(path_inventory_file, "w") {|file| file.puts inventory_content }
-    			end
+      			machine.communicate.execute('hostname -I') do |type, hostname_i|
+      				puts("#{machine.name} ip = " + hostname_i.to_s)
+      				path_inventory_file = './ansible/inventory.ini'
+      				inventory_content = File.read(path_inventory_file)
+      				inventory_content = inventory_content.gsub(/ansible_ssh_user=(.*)/,"ansible_ssh_user="+ssh_username)
+      				inventory_content = inventory_content.gsub(/#{machine.name} ansible_host=(.*)/, "#{machine.name} ansible_host="+hostname_i)
+      				File.open(path_inventory_file, "w") {|file| file.puts inventory_content }
+      			end
+          end
         end
       end
 

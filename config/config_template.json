@@ -1,7 +1,8 @@
 {
   "deployment":{
+    "environment": "test",
     "type":"distributed",
-    "default_provider":"aws",
+    "default_provider":"virtualbox",
     "ansible_limit": ["all"],
     "ansible_tags": ["all"]
   },
