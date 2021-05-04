@@ -10,8 +10,8 @@ Vagrant project to automatize the deployment of the DiSSCo digital object reposi
 1. Copy the file ```config/config_template.json``` as ```config/config.json``` and edit its values to match your deployment.
 This file will contain:
     - The passwords to be used when setting up the different applications (cordra, mongodb, elk, etc.)
-    - The type of deployment (simple or distributed) and the default cloud provider (aws, hyperv, virtualbox) 
-    - Credentials to connect to the cloud provider (aws, etc).
+    - The provider of the virtual machines (aws, virtualbox) and the deployment environment (prod/test/dev, see more below)
+    - Credentials to connect to the cloud provider (aws) in "infrastructure->aws". AWS credentials must also be provided in "software->general->aws_access", these should be from an accound that only has the permission to interact with S3 (download Cordra software & upload backup)
     - The internal and external private keys to be installed in the virtual machines, so ansible can run commands on them.    
 
 2. Configuration about the specifications of the different VMs (type, IPs, etc.) are defined in the Vagrant file
@@ -22,7 +22,60 @@ what ports they will be listening can be edited inside the ansible variables fil
 4. Copy the cordra_privatekey to be used by the Cordra instance to communicate with the handle server (http://hdl.handle.net/)
 into the directory **ansible/roles/cordra/files/cordra/cordra_nsidr_server/**
 
-## 2. Provision and execution
+## 2. Separating production, test and dev environment
+Test and production environments are ought to be on AWS, dev environment locally on your machine with the VM software Virtualbox. You need the following configuration:
+
+#### For Production:
+```json
+{
+  "deployment":{
+    "environment": "production",
+    "domain_prefix": "",
+    "default_provider": "aws",
+    ...
+  }
+}
+```
+
+#### For test:
+```json
+{
+  "deployment":{
+    "environment": "test",
+    "domain_prefix": "test.",
+    "default_provider": "aws",
+    ...
+  }
+}
+```
+
+#### For local dev:
+For the dev environment on your local machine make sure you have [Virtualbox](https://www.virtualbox.org/wiki/Downloads) installed.
+```json
+{
+  "deployment":{
+    "environment": "test",
+    "domain_prefix": "test.",
+    "default_provider": "virtualbox",
+    ...
+  }
+}
+```
+For the local setup to work a host-only network is needed. For this open the Virtualbox application, go to "File -> Host-only network manager" and create an adapter with the name "vboxnet0" and the following configuration:
+
+- IPv4 Address: 172.28.128.1
+- IPv4 Mask: 255.255.255.0
+- DHCP not enabled
+
+Then, copy the whole content of the file config/local_dev_inventory.ini and use it to replace the content of ansible/inventory.ini. With this you have a default configuration for the IP addresses of the VMs. You can skip the next step and start the setup directly with ```vagrant up```
+
+If any of the configuration above conflicts with your host machine config, you can adjust the IP addresses to your need and update the changes in the Vagrantfile.
+
+#### Note:
+After creation of the VMs, Vagrant stores the information related to the instances in the .vagrant/ folder. Therefore, when you change the deployment environment you have to delete the .vagrant/ folder.
+
+
+## 3. Provision and execution on AWS
 1. Modify the files  ```config/config.json```, ```Vagrantfile``` and ```ansible/group_vars/all``` to match your deployment
 
 2. Make sure that in your desired cloud provider you have set up the following aspects and they are available for the credentials that
@@ -31,23 +84,37 @@ vagrant will use to connect to that cloud provider:
     - the security groups
     - elastic/public IPs    
 
-3. Open an admin command line console in your machine
+3. Open an admin command line console in your machine, here the process is different for production and test
 
-4. Go to folder where the vagrant file and run the command ```vagrant up --no-provision``` for creating the machines in the cloud provider
-and updating the ansible/inventory.ini with their IPs. After that run ```vagrant reload --provision``` so all the provisioners will be executed
+#### Production environment:
+1. Go to the folder where the vagrant file is and run the command ```vagrant up --no-provision``` for creating the machines in the cloud provider
+and updating the ansible/inventory.ini with their private IPv4 IPs. After that run ```vagrant reload --provision``` so all the provisioners will be executed
 including the ansible provisioner inside the cordra_nsidr_server that is responsible to install all the software in the VMs
 Note: This Vagrantfile won't work if we try to execut it inside a Linux VM running on Hyper-V on a windows host, because can't change permissions
 of private ssh keys
 
-5. Check that all the service are up and running correctly. To see the list of the services running in each machine have a look at
-docs\ECOIS_subcomponents_deployment_diagram.pdf
 
-## 3. Updating Handle records
+#### Test environment:
+The problem is that now Elastic IPs are defined for the test environment and the public IPv4 addresses of the machines change on every reboot. Therefore:
+
+1. Go to the folder where the vagrant file is and run the command ```vagrant up test_monitoring_server test_db_server test_search_engine_server test_ds_viewer_server test_cordra_prov_server``` to create and provision the machines.
+2. Run ```vagrant up --no-provision test_cordra_nsidr_server```
+3. Gather the private IPv4 addresses of the machines and set their values in ansible/inventory.ini
+4. Set manually the routes for test.nsidr.org, test.prov.nsidr.org, test.demo.nsidr.org, test.monitoring.nsidr.org to the corresponding public IP addresses in AWS
+5. Run ```vagrant provision test_cordra_nsidr_server``` to execute the ansible script which installs the software.
+
+
+### Finally
+Check that all the service are up and running correctly. To see the list of the services running in each machine have a look at
+docs/ECOIS_subcomponents_deployment_diagram.pdf
+
+
+## 4. Updating Handle records
 Once the cordra instance inside the cordra_nsidr_server is running and its initial configuration and objects have been created
 through the ansible script, we should update the handle records when the service is set up using a domain (eg: nsidr.org)
 To do so, log in as "admin" and go to Admin->Handle Records and there click in the button Update All Handles
 
-## 4. Digitise some Digital Specimen from DWC-A
+## 5. Digitise some Digital Specimen from DWC-A
  We can use the java project openDS_CRUD_operator https://github.com/DiSSCo/openDS_CRUD_operator to digitise specimen describe in dwc-a files
  obtained from gbif like https://www.dropbox.com/s/36ni250j6iryf0x/0034622-190918142434337_Pygmaepterys_pointieri.zip?dl=0
 
@@ -55,7 +122,7 @@ To do so, log in as "admin" and go to Admin->Handle Records and there click in t
  in the cordra_prov instance. As well as if codra_nsidr was set with a domain name, being able to resolve the digital specimens
  with http://hdl.handle.net/
 
-## 5. Adding new CORDRA instances.
+## 6. Adding new CORDRA instances.
 If we want to add a new CORDRA instance, for example for CDIDR, we need to do the following:
 - Edit ```Vagrantfile``` to add configuration for the new VM
 - Edit ```ansible\inventory.ini``` to add new line for the new server under the section called cordra_servers

@@ -75,9 +75,10 @@ nbactions.xml
 nb-configuration.xml
 
 
-# Ignore all files in config except config_template.json
+# Ignore all files in config except config_template.json and example dev inventory.ini
 config/*
 !config/config_template.json
+!config/local_dev_inventory.ini
 
 # Ignore all files in keys
 keys/**
