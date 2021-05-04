@@ -93,7 +93,7 @@
       with_items:
         - { src: '{{ "cordra/" + instance_type + "/cordra_privatekey" }}', dest: '{{ cordra.dir + "/data/privatekey" }}' }
         - { src: '{{ "cordra/" + instance_type + "/cordra_publickey" }}', dest: '{{ cordra.dir + "/data/publickey" }}' }
-      when: cordra_download.changed and instance_type != 'cordra_prov_server'
+      when: cordra_download.changed and instance_type != 'cordra_prov_server' and cordra.handleServer_enabled
 
     - name: Set up file with doip commands to load initial data on {{ inventory_hostname }}
       template:
@@ -128,13 +128,13 @@
         #cmd: |
         #  grep -oP '"id": "\K{{ cordra['cordra_nsidr_server'].handle_prefix }}/[\w-.!]+' {{ cordra.dir }}/doip_load_initial_data.txt > {{ cordra.dir }}/hdl-list-to-delete.txt
         chdir: "{{ handle_tool.dir }}"
-      when: cordra_download.changed and cordra[instance_type].base_uri!=""
+      when: cordra_download.changed and cordra[instance_type].base_uri!="" and cordra.handleServer_enabled
 
     - name: Delete handle ids from handle server before starting Cordra on {{ inventory_hostname }}
       shell:
         cmd: ./bin/hdl-delete {{ cordra[instance_type].handle_prefix }}/repo 300 {{ cordra.dir }}/data/privatekey {{ cordra.dir }}/hdl-list-to-delete.txt
         chdir: "{{ handle_tool.dir }}"
-      when: cordra_download.changed and cordra[instance_type].base_uri!=""
+      when: cordra_download.changed and cordra[instance_type].base_uri!="" and cordra.handleServer_enabled
 
     - name: Copy delete_handle_ids_from_handle_server.sh script on {{ inventory_hostname }}
       template:
@@ -145,7 +145,7 @@
         mode: a+x
       with_items:
         - { src: 'cordra/delete_handle_ids_from_handle_server.sh.j2', dest: '{{ cordra.dir }}/bin' }
-      when: cordra_download.changed
+      when: cordra_download.changed and cordra.handleServer_enabled
 
     # - name: Start Cordra on {{ inventory_hostname }}
     #  shell:
@@ -206,7 +206,6 @@
         - "openssl s_client -connect {{ cordra[instance_type].host_ip }}:{{ cordra.doip_port }} < doip_load_initial_data.txt"
         - "openssl s_client -connect {{ cordra[instance_type].host_ip }}:{{ cordra.doip_port }} -ign_eof < doip_load_initial_data.txt &"
         - "sleep 60"
-        - "rm doip_load_initial_data.txt"
       become_user: "{{ server.user }}"
       when: cordra_service.changed
 
