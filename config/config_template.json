@@ -9,18 +9,6 @@
     "aws": {
       "access_key_id": "YOUR_IAM_USER_ACCESS_KEY_ID",
       "secret_access_key": "YOUR_IAM_USER_SECRECT_ACCESS_KEY"
-    },
-    "openstack": {
-      "identity_api_version":"3",
-      "auth_url":"https://cscloud.cf.ac.uk:5000/v3",
-      "region_name":"regionone",
-      "interface":"public",
-      "project_name":"YOUR_PROJECT_NAME",
-      "project_domain_name":"cs.cf.ac.uk",
-      "username":"YOUR_USERNAME",
-      "user_domain_name":"cs.cf.ac.uk",
-      "password":"PASSWORD",
-      "network_url": "https://cscloud.cf.ac.uk:9696/v2.0/networks"
     }
   },
   "software": {

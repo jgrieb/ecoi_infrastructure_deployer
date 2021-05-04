@@ -71,7 +71,7 @@ end
 
 Vagrant.configure('2') do |config|
 
-  config.vagrant.plugins = ["vagrant-openstack-provider",{"fog-ovirt" => {"version" => "1.0.1"}},"vagrant-aws"]
+  config.vagrant.plugins = [{"fog-ovirt" => {"version" => "1.0.1"}},"vagrant-aws"]
 
   config.ssh.username = ssh_username
 
@@ -100,30 +100,6 @@ Vagrant.configure('2') do |config|
     aws.region = "eu-west-2"
     aws.ami = "ami-04cc79dd5df3bffca"
     aws.keypair_name = "jointdemo"
-  end
-
-  # Default configuration for OpenStack virtual machines
-  config.vm.provider "openstack" do |os, override|
-    override.ssh.private_key_path = './'+external_private_key_path
-    override.vm.synced_folder ".", mount_synced_folder, type:"rsync", rsync__exclude: [".git/","./config","./keys/external"]
-
-    os.identity_api_version             = config_data['infrastructure']['openstack']['identity_api_version']
-    os.openstack_auth_url               = config_data['infrastructure']['openstack']['auth_url']
-    os.project_name                     = config_data['infrastructure']['openstack']['project_name']
-    os.project_domain_name              = config_data['infrastructure']['openstack']['project_domain_name']
-    os.username                         = config_data['infrastructure']['openstack']['username']
-    os.user_domain_name                 = config_data['infrastructure']['openstack']['user_domain_name']
-    os.password                         = config_data['infrastructure']['openstack']['password']
-    os.region                           = config_data['infrastructure']['openstack']['region_name']
-    os.interface_type					= config_data['infrastructure']['openstack']['interface']
-
-    # For some reason the openstack returns the endpoint to manage the network with http but it needs https
-    os.openstack_network_url			= config_data['infrastructure']['openstack']['network_url']
-
-    # Common Openstack attributes for all machines
-    os.image = 'Ubuntu Server 18.04.2'
-    os.networks = [{'name': 'alexnet'}]
-    os.keypair_name = 'jointdemo'
   end
 
   # Script that copies a ssh key to the guest machine so it can access and be accessible by the other guest machines (required for ansible to be able to run commands on them)
@@ -212,14 +188,6 @@ Vagrant.configure('2') do |config|
             aws.security_groups = ['ssh','nsidr_server_single_machine']
           end
 
-          # Specific setup for this virtual machine when using the openstack provider
-          cordra_nsidr_server.vm.provider :openstack do |os|
-            os.server_name = machine_name
-            os.flavor = 'm1.large'
-            os.floating_ip = '131.251.172.22'
-            os.security_groups = ['ssh','nsidr_server_single_machine']
-          end
-
           # Provisioner that run the script that updates the ansible inventory with the IP assigned to this virtual machine
           cordra_nsidr_server.vm.provision "update_inventory", type: "shell" do |s_inventory|
             s_inventory.inline        = $update_inventory_script
@@ -269,14 +237,6 @@ Vagrant.configure('2') do |config|
             aws.security_groups = ['ssh','monitoring_agent','monitoring_server','web_server']
           end
 
-          # Specific setup for this virtual machine when using the openstack provider
-          monitoring_server.vm.provider :openstack do |os, override|
-            os.server_name = machine_name
-            os.flavor = 'm1.medium'
-            os.floating_ip = '131.251.172.19'
-            os.security_groups = ['ssh','monitoring_agent','monitoring_server','web_server']
-          end
-
           # Provisioner that runs the script that updates the ansible inventory with the IP assigned to this virtual machine
           monitoring_server.vm.provision "update_inventory", type: "shell" do |s_inventory|
             s_inventory.inline        = $update_inventory_script
@@ -302,14 +262,6 @@ Vagrant.configure('2') do |config|
             aws.tags = {Name: machine_name}
             aws.instance_type= 't3.small'
             aws.security_groups = ['ssh','monitoring_agent','mongodb_server']
-          end
-
-          # Specific setup for this virtual machine when using the openstack provider
-          db_server.vm.provider :openstack do |os, override|
-            os.server_name = machine_name
-            os.flavor = 'm1.medium'
-            os.floating_ip_pool = "public"
-            os.security_groups = ['ssh','monitoring_agent','mongodb_server']
           end
 
           # Provisioner that runs the script that updates the ansible inventory with the IP assigned to this virtual machine
@@ -344,15 +296,6 @@ Vagrant.configure('2') do |config|
             aws.security_groups = ['ssh','monitoring_agent','elk_server']
           end
 
-          # Specific setup for this virtual machine when using the openstack provider
-          search_engine_server.vm.provider :openstack do |os, override|
-            os.server_name = 'search-engine-server'
-            os.flavor = 'm1.large'
-            os.image = 'Ubuntu Server 18.04.2'
-            os.floating_ip_pool = "public"
-            os.security_groups = ['ssh','monitoring_agent','elk_server']
-          end
-
           # Provisioner that runs the script that updates the ansible inventory with the IP assigned to this virtual machine
           search_engine_server.vm.provision "update_inventory", type: "shell" do |s_inventory|
             s_inventory.inline        = $update_inventory_script
@@ -379,14 +322,6 @@ Vagrant.configure('2') do |config|
             aws.instance_type= 't3.small'
             aws.security_groups = ['ssh','monitoring_agent','web_server','rails_server']
             aws.elastic_ip = '18.130.207.21'
-          end
-
-          # Specific setup for this virtual machine when using the openstack provider
-          ds_viewer_server.vm.provider :openstack do |os, override|
-            os.server_name = machine_name
-            os.flavor = 'm1.medium'
-            os.floating_ip = '131.251.172.20'
-            os.security_groups = ['ssh','monitoring_agent','web_server','rails_server']
           end
 
           # Provisioner that runs the script that updates the ansible inventory with the IP assigned to this virtual machine
@@ -417,14 +352,6 @@ Vagrant.configure('2') do |config|
             aws.security_groups = ['ssh','monitoring_agent','web_server','cordra_server']
           end
 
-          # Specific setup for this virtual machine when using the openstack provider
-          cordra_prov_server.vm.provider :openstack do |os, override|
-            os.server_name = machine_name
-            os.flavor = 'm1.medium'
-            os.floating_ip = '131.251.172.21'
-            os.security_groups = ['ssh','monitoring_agent','web_server','cordra_server']
-          end
-
           # Provisioner that runs the script that updates the ansible inventory with the IP assigned to this virtual machine
           cordra_prov_server.vm.provision "update_inventory", type: "shell" do |s_inventory|
             s_inventory.inline        = $update_inventory_script
@@ -451,14 +378,6 @@ Vagrant.configure('2') do |config|
             aws.instance_type= 't3.small'
             aws.elastic_ip = '3.9.186.140'
             aws.security_groups = ['ssh','monitoring_agent','web_server','cordra_server']
-          end
-
-          # Specific setup for this virtual machine when using the openstack provider
-          cordra_nsidr_server.vm.provider :openstack do |os|
-            os.server_name = machine_name
-            os.flavor = 'm1.medium'
-            os.floating_ip = '131.251.172.22'
-            os.security_groups = ['ssh','monitoring_agent','web_server','cordra_server']
           end
 
           # Provisioner that run the script that updates the ansible inventory with the IP assigned to this virtual machine
