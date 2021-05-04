@@ -61,12 +61,9 @@ external_private_key_path='keys/external/private.key'
 internal_private_key_path='keys/internal/private.key'
 
 # Set ssh username depending on provider
-if provider.casecmp?("hyperv") then
-    ssh_username="vagrant"
-else
-    ssh_username="ubuntu"
-    create_keys_files(config_data,external_private_key_path,internal_private_key_path)
-end
+
+ssh_username="ubuntu"
+create_keys_files(config_data,external_private_key_path,internal_private_key_path)
 
 
 Vagrant.configure('2') do |config|
@@ -81,12 +78,6 @@ Vagrant.configure('2') do |config|
       trigger.ruby do |env,machine|
         create_keys_files(config_data,external_private_key_path,internal_private_key_path)
       end
-  end
-
-  # Default configuration for Hyper-v virtual machines
-  config.vm.provider "hyperv" do |h, override|
-    override.vm.box = "bento/ubuntu-18.04"
-    override.vm.synced_folder ".", mount_synced_folder, type:"smb"
   end
 
   # Default configuration for AWS virtual machines
@@ -157,14 +148,6 @@ Vagrant.configure('2') do |config|
   config.vm.define "monitoring_server", autostart:true do |monitoring_server|
       machine_name = 'monitoring_server'
 
-      # Specific setup for this virtual machine when using the hyper-v provider
-      monitoring_server.vm.provider "hyperv" do |h, override|
-        h.vmname = machine_name
-        h.maxmemory = 1536
-        h.memory = 1024
-        h.cpus = 1
-      end
-
       # Specific setup for this virtual machine when using the aws provider
       monitoring_server.vm.provider :aws do |aws|
         aws.tags = {Name: machine_name}
@@ -184,14 +167,6 @@ Vagrant.configure('2') do |config|
   # Definition of the virtual machine that will be hosting mongodb
   config.vm.define "db_server", autostart:true do |db_server|
       machine_name = 'db_server'
-
-      # Specific setup for this virtual machine when using the hyperv provider
-      db_server.vm.provider "hyperv" do |h, override|
-        h.vmname = machine_name
-        h.maxmemory = 1536
-        h.memory = 1024
-        h.cpus = 1
-      end
 
       # Specific setup for this virtual machine when using the aws provider
       db_server.vm.provider :aws do |aws|
@@ -217,14 +192,6 @@ Vagrant.configure('2') do |config|
   config.vm.define "search_engine_server", autostart:true do |search_engine_server|
       machine_name = 'search_engine_server'
 
-      # Specific setup for this virtual machine when using the hyperv provider
-      search_engine_server.vm.provider "hyperv" do |h, override|
-        h.vmname = machine_name
-        h.maxmemory = 2560
-        h.memory = 1536
-        h.cpus = 1
-      end
-
       # Specific setup for this virtual machine when using the aws provider
       search_engine_server.vm.provider :aws do |aws|
         aws.tags = {Name: machine_name}
@@ -243,14 +210,6 @@ Vagrant.configure('2') do |config|
   # Definition of the virtual machine that will be hosting cordra provenance server
   config.vm.define "ds_viewer_server", autostart:true do |ds_viewer_server|
       machine_name = 'ds_viewer_server'
-
-      # Specific setup for this virtual machine when using the hyper-v provider
-      ds_viewer_server.vm.provider "hyperv" do |h, override|
-        h.vmname = machine_name
-        h.maxmemory = 1536
-        h.memory = 1024
-        h.cpus = 1
-      end
 
       # Specific setup for this virtual machine when using the aws provider
       ds_viewer_server.vm.provider :aws do |aws|
@@ -272,14 +231,6 @@ Vagrant.configure('2') do |config|
   config.vm.define "cordra_prov_server", autostart:true do |cordra_prov_server|
       machine_name = 'cordra_prov_server'
 
-      # Specific setup for this virtual machine when using the hyper-v provider
-      cordra_prov_server.vm.provider "hyperv" do |h, override|
-        h.vmname = machine_name
-        h.maxmemory = 1536
-        h.memory = 1024
-        h.cpus = 1
-      end
-
       # Specific setup for this virtual machine when using the aws provider
       cordra_prov_server.vm.provider :aws do |aws|
         aws.tags = {Name: machine_name}
@@ -299,14 +250,6 @@ Vagrant.configure('2') do |config|
   # Definition of the virtual machine that will be hosting cordra repository server
   config.vm.define "cordra_nsidr_server", autostart:true do |cordra_nsidr_server|
       machine_name = 'cordra_nsidr_server'
-
-      # Specific setup for this virtual machine when using the hyper-v provider
-      cordra_nsidr_server.vm.provider "hyperv" do |h, override|
-        h.vmname = machine_name
-        h.maxmemory = 1536
-        h.memory = 1024
-        h.cpus = 1
-      end
 
       # Specific setup for this virtual machine when using the aws provider
       cordra_nsidr_server.vm.provider :aws do |aws|
@@ -350,21 +293,19 @@ Vagrant.configure('2') do |config|
         trigger.run_remote = {inline: "/opt/cordra/bin/delete_handle_ids_from_handle_server.sh"}
       end
 
-      if !provider.casecmp?("hyperv") then
-        config.trigger.after [:up] do |trigger|
-          trigger.info = "Updating ansible inventory in host machine with a vagrant trigger after up"
-          trigger.ruby do |env,machine|
-			puts("Obtaining private ip for machine: #{machine.name}")
+      config.trigger.after [:up] do |trigger|
+        trigger.info = "Updating ansible inventory in host machine with a vagrant trigger after up"
+        trigger.ruby do |env,machine|
+		      puts("Obtaining private ip for machine: #{machine.name}")
 
-			machine.communicate.execute('hostname -I') do |type, hostname_i|
-				puts("#{machine.name} ip = " + hostname_i.to_s)
-				path_inventory_file = './ansible/inventory.ini'
-				inventory_content = File.read(path_inventory_file)
-				inventory_content = inventory_content.gsub(/ansible_ssh_user=(.*)/,"ansible_ssh_user="+ssh_username)
-				inventory_content = inventory_content.gsub(/#{machine.name} ansible_host=(.*)/, "#{machine.name} ansible_host="+hostname_i)
-				File.open(path_inventory_file, "w") {|file| file.puts inventory_content }
-			end
-          end
+    			machine.communicate.execute('hostname -I') do |type, hostname_i|
+    				puts("#{machine.name} ip = " + hostname_i.to_s)
+    				path_inventory_file = './ansible/inventory.ini'
+    				inventory_content = File.read(path_inventory_file)
+    				inventory_content = inventory_content.gsub(/ansible_ssh_user=(.*)/,"ansible_ssh_user="+ssh_username)
+    				inventory_content = inventory_content.gsub(/#{machine.name} ansible_host=(.*)/, "#{machine.name} ansible_host="+hostname_i)
+    				File.open(path_inventory_file, "w") {|file| file.puts inventory_content }
+    			end
         end
       end
 
