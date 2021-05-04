@@ -94,7 +94,7 @@ Vagrant.configure('2') do |config|
   config.vm.provider "aws" do |aws, override|
     override.vm.box = "FEBO/ubuntu18"
     override.ssh.private_key_path = './'+external_private_key_path
-    override.vm.synced_folder ".", mount_synced_folder, type:"rsync", rsync__auto: true, rsync__exclude: [".git/","./config","./keys/external"]
+    override.vm.synced_folder ".", mount_synced_folder, type:"rsync", rsync__auto: true, rsync__exclude: [".git/","/config/","/keys/external/"]
 
     aws.access_key_id = config_data['infrastructure']['aws']['access_key_id']
     aws.secret_access_key = config_data['infrastructure']['aws']['secret_access_key']
