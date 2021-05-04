@@ -6,9 +6,10 @@ server:
   apps_dir: /opt
   user: "{{ server_user }}"
   group: "{{ server_user }}"
-  conf: "{{ config }} "
+  conf: "{{ config['software'] }}"
   aws_conf: "{{ config['infrastructure']['aws'] }}"
   domain: "nsidr.org"
+  environment: "{{ config['deployment']['environment'] }}"
 
 cordra:
   dir: "{{ server.apps_dir + '/cordra' }}"
@@ -26,8 +27,8 @@ cordra:
   doec_library_url: https://dissco-cordra-distributions.s3.eu-west-2.amazonaws.com/doec-1.0.0-jar-with-dependencies.jar
 
   cordra_nsidr_server:
-    domain: "{{ '' + server.domain }}"
-    handle_prefix: "20.5000.1025"
+    domain: "{{config['deployment']['domain_prefix'] + '' + server.domain }}"
+    handle_prefix: "{{'20.5000.1025' if config['deployment']['environment'] == 'production' else 'test.20.5000.1025'}}"
     host_ip: "{{ hostvars['cordra_nsidr_server']['ansible_host'] }}"
     handleServer_host: "{{ hostvars['cordra_nsidr_server']['ansible_host'] }}"
     base_uri: "http://{{  '' + server.domain + ':8080' + '/' }}"
@@ -37,8 +38,8 @@ cordra:
     initial_users: "{{ server.conf.cordra.users }}"
 
   cordra_prov_server:
-    domain: "{{ 'prov.' + server.domain }}"
-    handle_prefix: "prov.994"
+    domain: "{{config['deployment']['domain_prefix'] + 'prov.' + server.domain }}"
+    handle_prefix: "{{'prov.994' if config['deployment']['environment'] == 'production' else 'test.prov.994'}}"
     host_ip: "{{ hostvars['cordra_prov_server']['ansible_host'] }}"
     handleServer_host: "{{ hostvars['cordra_prov_server']['ansible_host'] }}"
     #base_uri: "http://{{  'prov.' + server.domain + ':8080' + '/' }}"
@@ -129,7 +130,7 @@ grafana:
   admin_password: "{{ server.conf.grafana.admin_password }}"
   smtp: "{{ server.conf.grafana.smtp }}"
   notification_email_address: "{{ server.conf.notification_email_address }}"
-  domain: "{{ 'monitoring.' + server.domain }}"
+  domain: "{{config['deployment']['domain_prefix'] + 'monitoring.' + server.domain }}"
 
 ds_viewer:
   dir: "{{ server.apps_dir + '/dsviewer' }}"
@@ -138,7 +139,7 @@ ds_viewer:
   http_port: 80
   https_port: 443
   http_internal_port: 3000
-  domain: "{{ 'demo.' + server.domain }}"
+  domain: "{{config['deployment']['domain_prefix'] + 'demo.' + server.domain }}"
 
 nginx:
   notification_email_address: "{{ server.conf.notification_email_address }}"

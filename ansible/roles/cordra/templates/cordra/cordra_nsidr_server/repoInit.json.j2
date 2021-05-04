@@ -1,4 +1,4 @@
-{ 
+{
   "adminPassword": "{{ cordra.admin_password }}",
   "prefix": "{{ cordra[instance_type].handle_prefix }}",
   "baseUri": "{{ cordra[instance_type].base_uri}}",
@@ -6,7 +6,7 @@
 
   "design": {
     "uiConfig": {
-      "title": "ICEDIG Digital Specimen Repository",
+      "title": "{% if server.environment == 'test' %}Test {% endif %}ICEDIG Digital Specimen Repository",
       "relationshipsButtonText": "Show Relationships",
       "allowUserToSpecifySuffixOnCreate": true,
       "searchResults": {

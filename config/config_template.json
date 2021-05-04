@@ -1,6 +1,7 @@
 {
   "deployment":{
     "environment": "test",
+    "domain_prefix": "test.",
     "type":"distributed",
     "default_provider":"virtualbox",
     "ansible_limit": ["all"],
