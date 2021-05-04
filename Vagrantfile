@@ -379,6 +379,7 @@ Vagrant.configure('2') do |config|
           "software_config": config_data['software'],
           "deployment_config": config_data['deployment']
         }
+        ansible.pip_install_cmd = "sudo apt-get install -y python3-distutils && curl -s https://bootstrap.pypa.io/get-pip.py | sudo python3"
       end
 
       if !provider.casecmp?("virtualbox") && !deployment_environment.casecmp?("test") then
