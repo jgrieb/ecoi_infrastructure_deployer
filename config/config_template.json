@@ -2,8 +2,7 @@
   "deployment":{
     "environment": "test",
     "domain_prefix": "test.",
-    "type":"distributed",
-    "default_provider":"virtualbox",
+    "default_provider": "virtualbox",
     "ansible_limit": ["all"],
     "ansible_tags": ["all"]
   },
@@ -14,6 +13,12 @@
     }
   },
   "software": {
+    "general": {
+      "aws_access": {
+        "aws_access_key_id": "LIMITED_USER_ACCESS_KEY_ID",
+        "aws_secret_access_key": "LIMITED_USER_SECRECT_ACCESS_KEY",
+      }
+    },
     "cordra": {
       "admin_password":"PASSWORD",
       "users": [
@@ -30,8 +35,6 @@
       "backup": {
         "s3": {
           "region": "eu-west-2",
-          "aws_access_key_id": "IAM_USER_ACCESS_KEY_ID",
-          "aws_secret_access_key": "IAM_USER_SECRECT_ACCESS_KEY",
           "bucket": "dissco-ecoi-data",
           "storage_class": "ONEZONE_IA"
         }

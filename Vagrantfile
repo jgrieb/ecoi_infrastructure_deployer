@@ -376,7 +376,8 @@ Vagrant.configure('2') do |config|
         ansible.tags = config_data['deployment']['ansible_tags']
         ansible.extra_vars = {
           "server_user": ssh_username,
-          "config": config_data
+          "software_config": config_data['software'],
+          "deployment_config": config_data['deployment']
         }
       end
 
