@@ -153,266 +153,201 @@ Vagrant.configure('2') do |config|
     s_ufw_ssh.inline        = $ufw_ssh_script
   end
 
-  if deployment_type.casecmp?("single") then
-      # Definition of the virtual machine that will be hosting everything
-      config.vm.define "cordra_nsidr_server", autostart:true do |cordra_nsidr_server|
-           machine_name = 'cordra_nsidr_server'
+  # Definition of the virtual machine that will be hosting the monitoring software like prometheus, kibana, grafana, etc.
+  config.vm.define "monitoring_server", autostart:true do |monitoring_server|
+      machine_name = 'monitoring_server'
 
-          if !provider.casecmp?("hyperv") then
-              cordra_nsidr_server.trigger.after [:up] do |trigger|
-                trigger.info = "Updating ansible inventory in host machine with a vagrant triggger before provision"
-                trigger.only_on = "cordra_nsidr_server"
-                trigger.ruby do |env,machine|
-                    path_inventory_file = './ansible/inventory.ini'
-                    inventory_content = File.read(path_inventory_file)
-                    inventory_content = inventory_content.gsub(/ansible_ssh_user=(.*)/,"ansible_ssh_user="+ssh_username)
-                    cordra_nsidr_server_ip = %x(vagrant ssh cordra_nsidr_server -c "hostname -I")
-                    inventory_content = inventory_content.gsub(/cordra_nsidr_server ansible_host=(.*)/, "cordra_nsidr_server ansible_host="+cordra_nsidr_server_ip)
-                    File.open(path_inventory_file, "w") {|file| file.puts inventory_content }
-                end
-              end
-          end
-
-          # Specific setup for this virtual machine when using the hyper-v provider
-          cordra_nsidr_server.vm.provider "hyperv" do |h|
-            h.vmname = machine_name
-            h.maxmemory = 4096
-            h.memory = 2048
-            h.cpus = 2
-          end
-
-          # Specific setup for this virtual machine when using the aws provider
-          cordra_nsidr_server.vm.provider :aws do |aws|
-            aws.tags = {Name: machine_name}
-            aws.instance_type= 't3.large'
-            aws.security_groups = ['ssh','nsidr_server_single_machine']
-          end
-
-          # Provisioner that run the script that updates the ansible inventory with the IP assigned to this virtual machine
-          cordra_nsidr_server.vm.provision "update_inventory", type: "shell" do |s_inventory|
-            s_inventory.inline        = $update_inventory_script
-            s_inventory.args          = [mount_synced_folder+'/ansible/inventory.ini',machine_name,ssh_username]
-            s_inventory.privileged    = false
-          end
-
-          # Provisioner that runs the script that installs ansible local in the guest machine
-          cordra_nsidr_server.vm.provision "prepare_machine_for_ansible", type: "shell"  do |s_pre_ansible|
-            s_pre_ansible.inline = $pre_ansible_script
-          end
-
-          # Provisioner that will run the ansible playbook in the guest machine
-          cordra_nsidr_server.vm.provision "ansible_local" do |ansible|
-            ansible.verbose = true
-            ansible.install_mode = "pip"
-            ansible.version = "2.8.5"
-            ansible.playbook = "ansible/site_single_machine.yml"
-            ansible.inventory_path = "ansible/inventory.ini"
-            ansible.config_file = "ansible/ansible.cfg"
-            ansible.limit = "all"
-            ansible.tags = config_data['deployment']['ansible_tags']
-            ansible.extra_vars = {
-              "server_user": ssh_username,
-              "config": config_data['software']
-            }
-          end
-      end
-  else
-      # Definition of the virtual machine that will be hosting the monitoring software like prometheus, kibana, grafana, etc.
-      config.vm.define "monitoring_server", autostart:true do |monitoring_server|
-          machine_name = 'monitoring_server'
-
-          # Specific setup for this virtual machine when using the hyper-v provider
-          monitoring_server.vm.provider "hyperv" do |h, override|
-            h.vmname = machine_name
-            h.maxmemory = 1536
-            h.memory = 1024
-            h.cpus = 1
-          end
-
-          # Specific setup for this virtual machine when using the aws provider
-          monitoring_server.vm.provider :aws do |aws|
-            aws.tags = {Name: machine_name}
-            aws.instance_type= 't3.small'
-            aws.elastic_ip = '18.130.121.175'
-            aws.security_groups = ['ssh','monitoring_agent','monitoring_server','web_server']
-          end
-
-          # Provisioner that runs the script that updates the ansible inventory with the IP assigned to this virtual machine
-          monitoring_server.vm.provision "update_inventory", type: "shell" do |s_inventory|
-            s_inventory.inline        = $update_inventory_script
-            s_inventory.args          = [mount_synced_folder+'/ansible/inventory.ini',machine_name,ssh_username]
-            s_inventory.privileged    = false
-          end
+      # Specific setup for this virtual machine when using the hyper-v provider
+      monitoring_server.vm.provider "hyperv" do |h, override|
+        h.vmname = machine_name
+        h.maxmemory = 1536
+        h.memory = 1024
+        h.cpus = 1
       end
 
-      # Definition of the virtual machine that will be hosting mongodb
-      config.vm.define "db_server", autostart:true do |db_server|
-          machine_name = 'db_server'
-
-          # Specific setup for this virtual machine when using the hyperv provider
-          db_server.vm.provider "hyperv" do |h, override|
-            h.vmname = machine_name
-            h.maxmemory = 1536
-            h.memory = 1024
-            h.cpus = 1
-          end
-
-          # Specific setup for this virtual machine when using the aws provider
-          db_server.vm.provider :aws do |aws|
-            aws.tags = {Name: machine_name}
-            aws.instance_type= 't3.small'
-            aws.security_groups = ['ssh','monitoring_agent','mongodb_server']
-          end
-
-          # Provisioner that runs the script that updates the ansible inventory with the IP assigned to this virtual machine
-          db_server.vm.provision "update_inventory", type: "shell" do |s_inventory|
-            s_inventory.inline        = $update_inventory_script
-            s_inventory.args          = [mount_synced_folder+'/ansible/inventory.ini',machine_name,ssh_username]
-            s_inventory.privileged    = false
-          end
-
-          db_server.trigger.before :destroy do |trigger|
-            trigger.warn = "Backing up database before destroying machine"
-            trigger.run_remote = {inline: "/opt/mongodb_backup/mongodb-s3-backup.sh"}
-          end
+      # Specific setup for this virtual machine when using the aws provider
+      monitoring_server.vm.provider :aws do |aws|
+        aws.tags = {Name: machine_name}
+        aws.instance_type= 't3.small'
+        aws.elastic_ip = '18.130.121.175'
+        aws.security_groups = ['ssh','monitoring_agent','monitoring_server','web_server']
       end
 
-      # Definition of the virtual machine that will be hosting elasticsearch and logstash
-      config.vm.define "search_engine_server", autostart:true do |search_engine_server|
-          machine_name = 'search_engine_server'
+      # Provisioner that runs the script that updates the ansible inventory with the IP assigned to this virtual machine
+      monitoring_server.vm.provision "update_inventory", type: "shell" do |s_inventory|
+        s_inventory.inline        = $update_inventory_script
+        s_inventory.args          = [mount_synced_folder+'/ansible/inventory.ini',machine_name,ssh_username]
+        s_inventory.privileged    = false
+      end
+  end
 
-          # Specific setup for this virtual machine when using the hyperv provider
-          search_engine_server.vm.provider "hyperv" do |h, override|
-            h.vmname = machine_name
-            h.maxmemory = 2560
-            h.memory = 1536
-            h.cpus = 1
-          end
+  # Definition of the virtual machine that will be hosting mongodb
+  config.vm.define "db_server", autostart:true do |db_server|
+      machine_name = 'db_server'
 
-          # Specific setup for this virtual machine when using the aws provider
-          search_engine_server.vm.provider :aws do |aws|
-            aws.tags = {Name: machine_name}
-            aws.instance_type= 't3.medium'
-            aws.security_groups = ['ssh','monitoring_agent','elk_server']
-          end
-
-          # Provisioner that runs the script that updates the ansible inventory with the IP assigned to this virtual machine
-          search_engine_server.vm.provision "update_inventory", type: "shell" do |s_inventory|
-            s_inventory.inline        = $update_inventory_script
-            s_inventory.args          = [mount_synced_folder+'/ansible/inventory.ini',machine_name,ssh_username]
-            s_inventory.privileged    = false
-          end
+      # Specific setup for this virtual machine when using the hyperv provider
+      db_server.vm.provider "hyperv" do |h, override|
+        h.vmname = machine_name
+        h.maxmemory = 1536
+        h.memory = 1024
+        h.cpus = 1
       end
 
-      # Definition of the virtual machine that will be hosting cordra provenance server
-      config.vm.define "ds_viewer_server", autostart:true do |ds_viewer_server|
-          machine_name = 'ds_viewer_server'
-
-          # Specific setup for this virtual machine when using the hyper-v provider
-          ds_viewer_server.vm.provider "hyperv" do |h, override|
-            h.vmname = machine_name
-            h.maxmemory = 1536
-            h.memory = 1024
-            h.cpus = 1
-          end
-
-          # Specific setup for this virtual machine when using the aws provider
-          ds_viewer_server.vm.provider :aws do |aws|
-            aws.tags = {Name: machine_name}
-            aws.instance_type= 't3.small'
-            aws.security_groups = ['ssh','monitoring_agent','web_server','rails_server']
-            aws.elastic_ip = '18.130.207.21'
-          end
-
-          # Provisioner that runs the script that updates the ansible inventory with the IP assigned to this virtual machine
-          ds_viewer_server.vm.provision "update_inventory", type: "shell" do |s_inventory|
-            s_inventory.inline        = $update_inventory_script
-            s_inventory.args          = [mount_synced_folder+'/ansible/inventory.ini',machine_name,ssh_username]
-            s_inventory.privileged    = false
-          end
+      # Specific setup for this virtual machine when using the aws provider
+      db_server.vm.provider :aws do |aws|
+        aws.tags = {Name: machine_name}
+        aws.instance_type= 't3.small'
+        aws.security_groups = ['ssh','monitoring_agent','mongodb_server']
       end
 
-      # Definition of the virtual machine that will be hosting cordra provenance server
-      config.vm.define "cordra_prov_server", autostart:true do |cordra_prov_server|
-          machine_name = 'cordra_prov_server'
-
-          # Specific setup for this virtual machine when using the hyper-v provider
-          cordra_prov_server.vm.provider "hyperv" do |h, override|
-            h.vmname = machine_name
-            h.maxmemory = 1536
-            h.memory = 1024
-            h.cpus = 1
-          end
-
-          # Specific setup for this virtual machine when using the aws provider
-          cordra_prov_server.vm.provider :aws do |aws|
-            aws.tags = {Name: machine_name}
-            aws.instance_type= 't3.small'
-            aws.elastic_ip = '3.11.185.90'
-            aws.security_groups = ['ssh','monitoring_agent','web_server','cordra_server']
-          end
-
-          # Provisioner that runs the script that updates the ansible inventory with the IP assigned to this virtual machine
-          cordra_prov_server.vm.provision "update_inventory", type: "shell" do |s_inventory|
-            s_inventory.inline        = $update_inventory_script
-            s_inventory.args          = [mount_synced_folder+'/ansible/inventory.ini',machine_name,ssh_username]
-            s_inventory.privileged    = false
-          end
+      # Provisioner that runs the script that updates the ansible inventory with the IP assigned to this virtual machine
+      db_server.vm.provision "update_inventory", type: "shell" do |s_inventory|
+        s_inventory.inline        = $update_inventory_script
+        s_inventory.args          = [mount_synced_folder+'/ansible/inventory.ini',machine_name,ssh_username]
+        s_inventory.privileged    = false
       end
 
-      # Definition of the virtual machine that will be hosting cordra repository server
-      config.vm.define "cordra_nsidr_server", autostart:true do |cordra_nsidr_server|
-          machine_name = 'cordra_nsidr_server'
+      db_server.trigger.before :destroy do |trigger|
+        trigger.warn = "Backing up database before destroying machine"
+        trigger.run_remote = {inline: "/opt/mongodb_backup/mongodb-s3-backup.sh"}
+      end
+  end
 
-          # Specific setup for this virtual machine when using the hyper-v provider
-          cordra_nsidr_server.vm.provider "hyperv" do |h, override|
-            h.vmname = machine_name
-            h.maxmemory = 1536
-            h.memory = 1024
-            h.cpus = 1
-          end
+  # Definition of the virtual machine that will be hosting elasticsearch and logstash
+  config.vm.define "search_engine_server", autostart:true do |search_engine_server|
+      machine_name = 'search_engine_server'
 
-          # Specific setup for this virtual machine when using the aws provider
-          cordra_nsidr_server.vm.provider :aws do |aws|
-            aws.tags = {Name: machine_name}
-            aws.instance_type= 't3.small'
-            aws.elastic_ip = '3.9.186.140'
-            aws.security_groups = ['ssh','monitoring_agent','web_server','cordra_server']
-          end
+      # Specific setup for this virtual machine when using the hyperv provider
+      search_engine_server.vm.provider "hyperv" do |h, override|
+        h.vmname = machine_name
+        h.maxmemory = 2560
+        h.memory = 1536
+        h.cpus = 1
+      end
 
-          # Provisioner that run the script that updates the ansible inventory with the IP assigned to this virtual machine
-          cordra_nsidr_server.vm.provision "update_inventory", type: "shell" do |s_inventory|
-            s_inventory.inline        = $update_inventory_script
-            s_inventory.args          = [mount_synced_folder+'/ansible/inventory.ini',machine_name,ssh_username]
-            s_inventory.privileged    = false
-          end
+      # Specific setup for this virtual machine when using the aws provider
+      search_engine_server.vm.provider :aws do |aws|
+        aws.tags = {Name: machine_name}
+        aws.instance_type= 't3.medium'
+        aws.security_groups = ['ssh','monitoring_agent','elk_server']
+      end
 
-          # Provisioner that runs the script that installs ansible local in the guest machine
-          cordra_nsidr_server.vm.provision "prepare_machine_for_ansible", type: "shell"  do |s_pre_ansible|
-            s_pre_ansible.inline = $pre_ansible_script
-          end
+      # Provisioner that runs the script that updates the ansible inventory with the IP assigned to this virtual machine
+      search_engine_server.vm.provision "update_inventory", type: "shell" do |s_inventory|
+        s_inventory.inline        = $update_inventory_script
+        s_inventory.args          = [mount_synced_folder+'/ansible/inventory.ini',machine_name,ssh_username]
+        s_inventory.privileged    = false
+      end
+  end
 
-          # Provisioner that will run the ansible playbook in the guest machine
-          cordra_nsidr_server.vm.provision "ansible_local" do |ansible|
-            ansible.verbose = true
-            ansible.install_mode = "pip"
-            ansible.version = "2.8.5"
-            ansible.playbook = "ansible/site.yml"
-            ansible.inventory_path = "ansible/inventory.ini"
-            ansible.config_file = "ansible/ansible.cfg"
-            # Anible limit could be "all" or for example "monitoring_servers,db_servers" to run the tasks that affect machines on those 2 groups
-            ansible.limit = config_data['deployment']['ansible_limit']
-            ansible.tags = config_data['deployment']['ansible_tags']
-            ansible.extra_vars = {
-              "server_user": ssh_username,
-              "config": config_data['software']
-            }
-          end
+  # Definition of the virtual machine that will be hosting cordra provenance server
+  config.vm.define "ds_viewer_server", autostart:true do |ds_viewer_server|
+      machine_name = 'ds_viewer_server'
 
-          cordra_nsidr_server.trigger.before :destroy do |trigger|
-            trigger.warn = "Deleting handle ids in handle server before destroying machine"
-            trigger.run_remote = {inline: "/opt/cordra/bin/delete_handle_ids_from_handle_server.sh"}
-          end
+      # Specific setup for this virtual machine when using the hyper-v provider
+      ds_viewer_server.vm.provider "hyperv" do |h, override|
+        h.vmname = machine_name
+        h.maxmemory = 1536
+        h.memory = 1024
+        h.cpus = 1
+      end
+
+      # Specific setup for this virtual machine when using the aws provider
+      ds_viewer_server.vm.provider :aws do |aws|
+        aws.tags = {Name: machine_name}
+        aws.instance_type= 't3.small'
+        aws.security_groups = ['ssh','monitoring_agent','web_server','rails_server']
+        aws.elastic_ip = '18.130.207.21'
+      end
+
+      # Provisioner that runs the script that updates the ansible inventory with the IP assigned to this virtual machine
+      ds_viewer_server.vm.provision "update_inventory", type: "shell" do |s_inventory|
+        s_inventory.inline        = $update_inventory_script
+        s_inventory.args          = [mount_synced_folder+'/ansible/inventory.ini',machine_name,ssh_username]
+        s_inventory.privileged    = false
+      end
+  end
+
+  # Definition of the virtual machine that will be hosting cordra provenance server
+  config.vm.define "cordra_prov_server", autostart:true do |cordra_prov_server|
+      machine_name = 'cordra_prov_server'
+
+      # Specific setup for this virtual machine when using the hyper-v provider
+      cordra_prov_server.vm.provider "hyperv" do |h, override|
+        h.vmname = machine_name
+        h.maxmemory = 1536
+        h.memory = 1024
+        h.cpus = 1
+      end
+
+      # Specific setup for this virtual machine when using the aws provider
+      cordra_prov_server.vm.provider :aws do |aws|
+        aws.tags = {Name: machine_name}
+        aws.instance_type= 't3.small'
+        aws.elastic_ip = '3.11.185.90'
+        aws.security_groups = ['ssh','monitoring_agent','web_server','cordra_server']
+      end
+
+      # Provisioner that runs the script that updates the ansible inventory with the IP assigned to this virtual machine
+      cordra_prov_server.vm.provision "update_inventory", type: "shell" do |s_inventory|
+        s_inventory.inline        = $update_inventory_script
+        s_inventory.args          = [mount_synced_folder+'/ansible/inventory.ini',machine_name,ssh_username]
+        s_inventory.privileged    = false
+      end
+  end
+
+  # Definition of the virtual machine that will be hosting cordra repository server
+  config.vm.define "cordra_nsidr_server", autostart:true do |cordra_nsidr_server|
+      machine_name = 'cordra_nsidr_server'
+
+      # Specific setup for this virtual machine when using the hyper-v provider
+      cordra_nsidr_server.vm.provider "hyperv" do |h, override|
+        h.vmname = machine_name
+        h.maxmemory = 1536
+        h.memory = 1024
+        h.cpus = 1
+      end
+
+      # Specific setup for this virtual machine when using the aws provider
+      cordra_nsidr_server.vm.provider :aws do |aws|
+        aws.tags = {Name: machine_name}
+        aws.instance_type= 't3.small'
+        aws.elastic_ip = '3.9.186.140'
+        aws.security_groups = ['ssh','monitoring_agent','web_server','cordra_server']
+      end
+
+      # Provisioner that run the script that updates the ansible inventory with the IP assigned to this virtual machine
+      cordra_nsidr_server.vm.provision "update_inventory", type: "shell" do |s_inventory|
+        s_inventory.inline        = $update_inventory_script
+        s_inventory.args          = [mount_synced_folder+'/ansible/inventory.ini',machine_name,ssh_username]
+        s_inventory.privileged    = false
+      end
+
+      # Provisioner that runs the script that installs ansible local in the guest machine
+      cordra_nsidr_server.vm.provision "prepare_machine_for_ansible", type: "shell"  do |s_pre_ansible|
+        s_pre_ansible.inline = $pre_ansible_script
+      end
+
+      # Provisioner that will run the ansible playbook in the guest machine
+      cordra_nsidr_server.vm.provision "ansible_local" do |ansible|
+        ansible.verbose = true
+        ansible.install_mode = "pip"
+        ansible.version = "2.8.5"
+        ansible.playbook = "ansible/site.yml"
+        ansible.inventory_path = "ansible/inventory.ini"
+        ansible.config_file = "ansible/ansible.cfg"
+        # Anible limit could be "all" or for example "monitoring_servers,db_servers" to run the tasks that affect machines on those 2 groups
+        ansible.limit = config_data['deployment']['ansible_limit']
+        ansible.tags = config_data['deployment']['ansible_tags']
+        ansible.extra_vars = {
+          "server_user": ssh_username,
+          "config": config_data['software']
+        }
+      end
+
+      cordra_nsidr_server.trigger.before :destroy do |trigger|
+        trigger.warn = "Deleting handle ids in handle server before destroying machine"
+        trigger.run_remote = {inline: "/opt/cordra/bin/delete_handle_ids_from_handle_server.sh"}
       end
 
       if !provider.casecmp?("hyperv") then
