@@ -32,7 +32,7 @@ Test and production environments are ought to be on AWS, dev environment locally
     "environment": "production",
     "domain_prefix": "",
     "default_provider": "aws",
-    ...
+    "..."
   }
 }
 ```
@@ -44,7 +44,7 @@ Test and production environments are ought to be on AWS, dev environment locally
     "environment": "test",
     "domain_prefix": "test.",
     "default_provider": "aws",
-    ...
+    "..."
   }
 }
 ```
@@ -57,7 +57,7 @@ For the dev environment on your local machine make sure you have [Virtualbox](ht
     "environment": "test",
     "domain_prefix": "test.",
     "default_provider": "virtualbox",
-    ...
+    "..."
   }
 }
 ```
@@ -97,14 +97,18 @@ of private ssh keys
 #### Test environment:
 The problem is that now Elastic IPs are defined for the test environment and the public IPv4 addresses of the machines change on every reboot. Therefore:
 
-1. Go to the folder where the vagrant file is and run the command ```vagrant up test_monitoring_server test_db_server test_search_engine_server test_ds_viewer_server test_cordra_prov_server``` to create and provision the machines.
-2. Run ```vagrant up --no-provision test_cordra_nsidr_server```
-3. Gather the private IPv4 addresses of the machines and set their values in ansible/inventory.ini
-4. Set manually the routes for test.nsidr.org, test.prov.nsidr.org, test.demo.nsidr.org, test.monitoring.nsidr.org to the corresponding public IP addresses in AWS
+1. Go to the folder where the vagrant file is and run the following command to create and provision the machines (without the VM that functions as ansible control node)
+```
+vagrant up test_monitoring_server test_db_server test_search_engine_server test_ds_viewer_server test_cordra_prov_server
+```
+2. The run ```vagrant up --no-provision test_cordra_nsidr_server```
+3. Make sure the values of the private IPv4 addresses are correct in ansible/inventory.ini
+4. Manually set the routes for test.nsidr.org, test.prov.nsidr.org, test.demo.nsidr.org, test.monitoring.nsidr.org to the corresponding public IP addresses in AWS
+5. Run ```vagrant rsync test_cordra_nsidr_server``` to sync the folder (with the updated IPv4 addresses) because otherwise vagrant only syncs upon restarting the VM
 5. Run ```vagrant provision test_cordra_nsidr_server``` to execute the ansible script which installs the software.
 
 
-### Finally
+#### Finally
 Check that all the service are up and running correctly. To see the list of the services running in each machine have a look at
 docs/ECOIS_subcomponents_deployment_diagram.pdf
 

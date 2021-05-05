@@ -394,16 +394,19 @@ Vagrant.configure('2') do |config|
           trigger.info = "Updating ansible inventory in host machine with a vagrant trigger after up"
           trigger.ruby do |env,machine|
       			puts("Obtaining private ip for machine: #{machine.name}")
-
       			machine.communicate.execute('hostname -I') do |type, hostname_i|
       				puts("#{machine.name} ip = " + hostname_i.to_s)
       				path_inventory_file = './ansible/inventory.ini'
       				inventory_content = File.read(path_inventory_file)
       				inventory_content = inventory_content.gsub(/ansible_ssh_user=(.*)/,"ansible_ssh_user="+ssh_username)
-      				inventory_content = inventory_content.gsub(/#{machine.name} ansible_host=(.*)/, "#{machine.name} ansible_host="+hostname_i)
+              _machine_name = machine.name.to_s
+              if deployment_environment.casecmp?("test") then
+                _machine_name = _machine_name.delete_prefix("test_")
+              end
+      				inventory_content = inventory_content.gsub(/#{_machine_name} ansible_host=(.*)/, "#{_machine_name} ansible_host="+hostname_i)
       				File.open(path_inventory_file, "w") {|file| file.puts inventory_content }
-      			end
-          end
+            end
+    			end
         end
       end
 
