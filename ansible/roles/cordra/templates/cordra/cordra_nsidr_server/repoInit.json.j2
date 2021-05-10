@@ -2,7 +2,10 @@
   "adminPassword": "{{ cordra.admin_password }}",
   "prefix": "{{ cordra[instance_type].handle_prefix }}",
   "baseUri": "{{ cordra[instance_type].base_uri}}",
+  "baseUri": "{{ cordra[instance_type].base_uri}}",
+  {% if server.environment == 'production' %}
   "handleAdminIdentity": "{{ cordra[instance_type].handle_prefix }}/repo",
+  {% endif %}
 
   "design": {
     "uiConfig": {
@@ -140,7 +143,9 @@
     "handleMintingConfig": {
       "prefix": "{{ cordra[instance_type].handle_prefix }}",
       "baseUri": "{{ cordra[instance_type].base_uri}}",
+      {% if server.environment == 'production' %}
       "handleAdminIdentity": "{{ cordra[instance_type].handle_prefix }}/repo",
+      {% endif %}
       "defaultLinks": [
         {
           "type": "json",
