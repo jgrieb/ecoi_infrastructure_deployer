@@ -1,25 +1,15 @@
 ---
 - name: Setup Cordra on {{ inventory_hostname }}
   block:
-    # Download cordra distribution and unzip in /opt as zip has folder cordra-x.x.x
-    - name: Download CORDRA from AWSS3 on {{ inventory_hostname }}
-      aws_s3:
-        bucket: dissco-cordra-distributions
-        object: cordra-2.0.0-distribution-fran.zip
-        dest: /tmp/cordra-2.0.0-distribution-fran.zip
-        mode: get
-        aws_access_key: "{{ server.aws_conf.access_key_id }}"
-        aws_secret_key: "{{ server.aws_conf.secret_access_key }}"
-      register: cordra_download
-
-    - name: Unarchive CORDRA on {{ inventory_hostname }}
+    - name: Download and unarchive Cordra-x.x.x from cordra.org on {{ inventory_hostname }}
       unarchive:
-        src: /tmp/cordra-2.0.0-distribution-fran.zip
+        src: "{{ cordra.distribution_url }}"
+        remote_src: yes
         dest: "{{ server.apps_dir }}"
-        creates: "{{ cordra.dir }}"
+        creates: "{{ cordra.dir  }}"
         owner: "{{ server.user }}"
         group: "{{ server.group }}"
-      when: cordra_download.changed
+      register: cordra_download
 
     - name: Create symbolic link between cordra-x.x.x and cordra directory on {{ inventory_hostname }}
       shell:
@@ -50,8 +40,8 @@
     - name: Download DOEC library from AWSS3 on {{ inventory_hostname }}
       aws_s3:
         bucket: dissco-cordra-distributions
-        object: doec-1.0.0-jar-with-dependencies.jar
-        dest: /tmp/doec-1.0.0-jar-with-dependencies.jar
+        object: "{{ cordra.doec_library_object }}"
+        dest: /tmp/{{ cordra.doec_library_object }}
         mode: get
         aws_access_key: "{{ server.aws_conf.access_key_id }}"
         aws_secret_key: "{{ server.aws_conf.secret_access_key }}"
@@ -59,8 +49,8 @@
 
     - name: Install DOEC library from temp folder {{ inventory_hostname }}
       copy:
-        src: "/tmp/doec-1.0.0-jar-with-dependencies.jar"
-        dest: "{{ cordra.dir }}/data/lib/doec-1.0.0-jar-with-dependencies.jar"
+        src: "/tmp/{{ cordra.doec_library_object }}"
+        dest: "{{ cordra.dir }}/data/lib/{{ cordra.doec_library_object }}"
         owner: "{{ server.user }}"
         group: "{{ server.group }}"
       when: cordra_download.changed and instance_type != 'cordra_prov_server'
