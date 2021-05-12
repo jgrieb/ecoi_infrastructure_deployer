@@ -25,7 +25,7 @@ cordra:
   doec_library_object: doec-1.1.0-jar-with-dependencies.jar
 
   cordra_nsidr_server:
-    domain: "{{deployment_config['domain_prefix'] + '' + server.domain }}"
+    domain: "{% if deployment_config['default_provider']=='virtualbox' %}_{% else %}{{deployment_config['domain_prefix'] + '' + server.domain }}{% endif %}"
     handle_prefix: "{{'20.5000.1025' if deployment_config['environment'] == 'production' else 'test.20.5000.1025'}}"
     host_ip: "{{ hostvars['cordra_nsidr_server']['ansible_host'] }}"
     handleServer_host: "{{ hostvars['cordra_nsidr_server']['ansible_host'] }}"
@@ -36,7 +36,7 @@ cordra:
     initial_users: "{{ server.conf.cordra.users }}"
 
   cordra_prov_server:
-    domain: "{{deployment_config['domain_prefix'] + 'prov.' + server.domain }}"
+    domain: "{% if deployment_config['default_provider']=='virtualbox' %}_{% else %}{{deployment_config['domain_prefix'] + 'prov.' + server.domain }}{% endif %}"
     handle_prefix: "{{'prov.994' if deployment_config['environment'] == 'production' else 'test.prov.994'}}"
     host_ip: "{{ hostvars['cordra_prov_server']['ansible_host'] }}"
     handleServer_host: "{{ hostvars['cordra_prov_server']['ansible_host'] }}"
@@ -128,7 +128,7 @@ grafana:
   admin_password: "{{ server.conf.grafana.admin_password }}"
   smtp: "{{ server.conf.grafana.smtp }}"
   notification_email_address: "{{ server.conf.notification_email_address }}"
-  domain: "{{deployment_config['domain_prefix'] + 'monitoring.' + server.domain }}"
+  domain: "{% if deployment_config['default_provider']=='virtualbox' %}_{% else %}{{deployment_config['domain_prefix'] + 'monitoring.' + server.domain }}{% endif %}"
 
 ds_viewer:
   dir: "{{ server.apps_dir + '/dsviewer' }}"
@@ -137,7 +137,7 @@ ds_viewer:
   http_port: 80
   https_port: 443
   http_internal_port: 3000
-  domain: "{{deployment_config['domain_prefix'] + 'demo.' + server.domain }}"
+  domain: "{% if deployment_config['default_provider']=='virtualbox' %}_{% else %}{{deployment_config['domain_prefix'] + 'demo.' + server.domain }}{% endif %}"
 
 nginx:
   notification_email_address: "{{ server.conf.notification_email_address }}"
