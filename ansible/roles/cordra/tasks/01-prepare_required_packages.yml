@@ -13,7 +13,6 @@
           - libcurl4
           - openssl
           - python-apt
-          - python-pip
           - python3-pip
           - python-setuptools
 
@@ -28,6 +27,7 @@
     - name: Install Python package boto3 with pip required by aws_s3 module on {{ inventory_hostname }}
       pip:
         name: boto3
+      when: instance_type != 'cordra_prov_server'
 
   become: true
   become_user: root

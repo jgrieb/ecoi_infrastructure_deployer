@@ -8,6 +8,12 @@
       vars:
         packages:
           - unzip
+          - python3-pip
+          - python-setuptools
+
+    - name: Install Python package boto3 with pip required by aws_s3 module on {{ inventory_hostname }}
+      pip:
+        name: boto3
 
   become: true
   become_user: root

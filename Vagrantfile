@@ -138,7 +138,7 @@ Vagrant.configure('2') do |config|
   # Script to enable ssh with ufw
   $pre_ansible_script = <<-SCRIPT
     apt-get update
-    DEBIAN_FRONTEND=noninteractive apt-get -y install python-pip
+    DEBIAN_FRONTEND=noninteractive apt-get -y install python3-pip
     export ANSIBLE_HOST_KEY_CHECKING=False
   SCRIPT
 
