@@ -1,0 +1,85 @@
+---
+# Ansible playbook for restoring the database backup from mongodb
+- hosts: cordra_servers
+  gather_facts: yes
+  tasks:
+    - name: Stop cordra and delete old search index
+      block:
+        - name: Stop cordra service on {{ inventory_hostname }}
+          systemd:
+            name: cordra.service
+            state: stopped
+
+        # Not possible to use the ansible module uri here because it does not allow
+        # to pass a custom .crt file for TLS validation
+        - name: Manually delete elastic search index on {{ inventory_hostname }}
+          shell:
+            cmd: >
+              curl -XDELETE
+              https://elastic:{{ elasticsearch.elastic_password }}@{{ elasticsearch.host_ip }}:{{ elasticsearch.http_port }}/{{ cordra[inventory_hostname].index_name }}
+              --cacert {{ server.apps_dir }}/certs/search_engine_server.crt
+            warn: false
+
+      become: true
+      become_user: root
+      rescue:
+        - debug:
+            msg: "ERROR in stopping Cordra.service and deleting the search index on {{ inventory_hostname }}"
+      always:
+        - debug:
+            msg: "FINISHED stopping Cordra.service and deleting the search index on {{ inventory_hostname }}"
+
+
+- hosts: db_servers
+  gather_facts: yes
+  tasks:
+    - name: Download and restore mongodb backup
+      block:
+        - name: Find latest backup file on AWS S3 on {{ inventory_hostname }}
+          shell:
+            cmd: aws s3 ls dissco-ecoi-data --recursive | sort | tail -n 1 | awk '{print $4}'
+          register: backup_file_name
+
+        - name: Download backup from AWS S3 on {{ inventory_hostname }}
+          aws_s3:
+            bucket: dissco-ecoi-data
+            object: "{{ backup_file_name.stdout }}"
+            dest: /tmp/{{ backup_file_name.stdout }}
+            mode: get
+            aws_access_key: "{{ server.aws_conf.access_key_id }}"
+            aws_secret_key: "{{ server.aws_conf.secret_access_key }}"
+
+        - name: Unpack backup tar file and restore database with mongorestore on {{ inventory_hostname }}
+          shell:
+            cmd: "{{item}}"
+            warn: false
+          with_items:
+            - "mkdir /tmp/mongodb_backup_dir"
+            - "tar -xf /tmp/{{ backup_file_name.stdout }} -C /tmp/mongodb_backup_dir/"
+            - "{{ mongodb.dir }}/bin/mongorestore -h {{mongodb.host_ip}} --port {{mongodb.port}} -u root --password {{ mongodb.admin_password }} --authenticationDatabase admin --drop /tmp/mongodb_backup_dir"
+            - "rm /tmp/{{ backup_file_name.stdout }}"
+            - "rm -r /tmp/mongodb_backup_dir"
+      rescue:
+        - debug:
+            msg: "ERROR in restoring the backup on {{ inventory_hostname }}"
+      always:
+        - debug:
+            msg: "FINISHED restoring the backup on {{ inventory_hostname }}"
+
+- hosts: cordra_servers
+  gather_facts: yes
+  tasks:
+    - name: Restart cordra service to reload data and rebuild the search index
+      block:
+        - name: Restart cordra service on {{ inventory_hostname }}
+          systemd:
+            name: cordra.service
+            state: restarted
+      become: true
+      become_user: root
+      rescue:
+        - debug:
+            msg: "ERROR restarting Cordra service after database restore on {{ inventory_hostname }}"
+      always:
+        - debug:
+            msg: "FINISHED restarting Cordra service after database restore on {{ inventory_hostname }}"

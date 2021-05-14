@@ -10,6 +10,7 @@ server:
   aws_conf: "{{ software_config['general']['aws_access'] }}"
   domain: "nsidr.org"
   environment: "{{ deployment_config['environment'] }}"
+  restore_db_backup_after_setup: "{{ deployment_config['restore_db_backup_after_setup'] }}"
 
 cordra:
   dir: "{{ server.apps_dir + '/cordra' }}"

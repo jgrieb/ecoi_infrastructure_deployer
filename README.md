@@ -55,7 +55,6 @@ For the dev environment on your local machine make sure you have [Virtualbox](ht
 {
   "deployment":{
     "environment": "test",
-    "domain_prefix": "test.",
     "default_provider": "virtualbox",
     "..."
   }
@@ -107,6 +106,27 @@ vagrant up test_monitoring_server test_db_server test_search_engine_server test_
 5. Run ```vagrant rsync test_cordra_nsidr_server``` to sync the folder (with the updated IPv4 addresses) because otherwise vagrant only syncs upon restarting the VM
 5. Run ```vagrant provision test_cordra_nsidr_server``` to execute the ansible script which installs the software.
 
+
+#### Restoring data from the backup:
+By default no data is restored after the deployment - a fresh install. If desired, the data can be restored automatically after the setup is finished from the AWS backup with the following configuration:
+```json
+{
+  "deployment":{
+    "restore_db_backup_after_setup": true
+    "..."
+  }
+}
+```
+If the servers are running already and the ansible script should only restore the data from the backup and nothing else, put the following config:
+```json
+{
+  "deployment":{
+    "restore_db_backup_after_setup": true,
+    "ansible_tags": ["restore_backup"]
+    "..."
+  }
+}
+```
 
 #### Finally
 Check that all the service are up and running correctly. To see the list of the services running in each machine have a look at

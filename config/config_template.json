@@ -3,6 +3,7 @@
     "environment": "test",
     "domain_prefix": "test.",
     "default_provider": "virtualbox",
+    "restore_db_backup_after_setup": false,
     "ansible_limit": ["all"],
     "ansible_tags": ["all"]
   },

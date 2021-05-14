@@ -53,3 +53,8 @@
   gather_facts: yes
   roles:
     - ds_viewer
+
+- name: Include playbook to restore mongodb from the backup
+  import_playbook: restore_backup.yml
+  tags: [restore_backup]
+  when: server.restore_db_backup_after_setup
