@@ -14,7 +14,6 @@
       file:
         path: "{{ nginx_path }}/sites-enabled/default"
         state: absent
-      when: nginx_installed.changed
 
     - name: Configure nginx site-available on {{ inventory_hostname }}
       template:
