@@ -8,7 +8,7 @@
       vars:
         packages:
           - unzip
-          - python-certbot-nginx
+          - python3-certbot-nginx
 
   become: true
   become_user: root

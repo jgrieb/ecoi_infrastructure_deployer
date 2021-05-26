@@ -15,6 +15,7 @@
           - ufw
           - unzip
           - openssl
+          - net-tools
           - python-passlib
           - python3-passlib
 

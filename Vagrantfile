@@ -86,13 +86,13 @@ Vagrant.configure('2') do |config|
 
   # Default configuration for virtualbox machines
   config.vm.provider "virtualbox" do |h, override|
-    override.vm.box = "bento/ubuntu-18.04"
+    override.vm.box = "bento/ubuntu-20.04"
     override.vm.synced_folder ".", mount_synced_folder, type:"rsync", rsync__auto: true, rsync__exclude: [".git/","/config/","/keys/external/"]
   end
 
   # Default configuration for AWS virtual machines
   config.vm.provider "aws" do |aws, override|
-    override.vm.box = "FEBO/ubuntu18"
+    override.vm.box = "FEBO/ubuntu20"
     override.ssh.private_key_path = './'+external_private_key_path
     override.vm.synced_folder ".", mount_synced_folder, type:"rsync", rsync__auto: true, rsync__exclude: [".git/","/config/","/keys/external/"]
 
@@ -366,8 +366,9 @@ Vagrant.configure('2') do |config|
       # Provisioner that will run the ansible playbook in the guest machine
       cordra_nsidr_server.vm.provision "ansible_local" do |ansible|
         ansible.verbose = true
-        ansible.install_mode = "pip"
-        ansible.version = "2.8.5"
+        ansible.install_mode = "pip_args_only"
+        ansible.pip_args = "ansible==4.0.0"
+        ansible.compatibility_mode = "2.0"
         ansible.playbook = "ansible/site.yml"
         ansible.inventory_path = "ansible/inventory.ini"
         ansible.config_file = "ansible/ansible.cfg"
