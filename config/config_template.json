@@ -17,7 +17,7 @@
     "general": {
       "aws_access": {
         "aws_access_key_id": "LIMITED_USER_ACCESS_KEY_ID",
-        "aws_secret_access_key": "LIMITED_USER_SECRECT_ACCESS_KEY",
+        "aws_secret_access_key": "LIMITED_USER_SECRECT_ACCESS_KEY"
       }
     },
     "cordra": {

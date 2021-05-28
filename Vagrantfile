@@ -31,7 +31,7 @@ def create_keys_files(config_data,external_private_key_path,internal_private_key
 end
 
 # Read config properties from config file
-config_data = JSON.parse(File.read('config/config.json'))
+config_data = JSON.parse(File.read('config/config_template.json'))
 deployment_type=config_data['deployment']['type']
 provider = config_data['deployment']['default_provider']
 deployment_environment = config_data['deployment']['environment']
