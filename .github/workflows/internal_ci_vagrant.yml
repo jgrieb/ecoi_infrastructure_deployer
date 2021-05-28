@@ -1,0 +1,47 @@
+# This is a test workflow for testing the infrastructure in a private github runner container. No passwords are used (just the config_template) 
+# and one secret is used for the ssh key which ansible needs. However this secret is also just a dummy since it only used on the internal VBox network 
+# during the CI process
+
+name: vagrant-up
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  vagrant-up:
+    # The type of runner that the job will run on
+    runs-on: macos-10.15
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+      
+      - name: Test before if secret handling works
+        run: ls keys/internal
+
+      # name: Create private.key file from secret so that it is not created
+      - shell: bash
+        env:
+          SECRET_VARIABLE: ${{ secrets.CI_INTERNAL_KEY }}
+        run: echo "$SECRET_VARIABLE" > keys/internal/private.key
+        
+      - name: Test after if secret handling works
+        run: ls keys/internal
+
+      - name: Create virtualbox hostonly network
+        run: VBoxManage hostonlyif create && VBoxManage hostonlyif ipconfig vboxnet0 --ip 172.28.128.1
+
+      - name: Run vagrant up
+        run: vagrant up
+
+      - name: ssh into box after boot
+        run: vagrant ssh cordra_nsidr_server -c "echo 'hello world!' && echo hostname -I "
