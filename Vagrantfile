@@ -72,7 +72,7 @@ end
 
 Vagrant.configure('2') do |config|
 
-  config.vagrant.plugins = [{"fog-ovirt" => {"version" => "1.0.1"}},"vagrant-aws"]
+  # config.vagrant.plugins = [{"fog-ovirt" => {"version" => "1.0.1"}},"vagrant-aws"]
 
   config.ssh.username = ssh_username
 
